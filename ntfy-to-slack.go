@@ -67,7 +67,7 @@ func main() {
 		switch msg.Event {
 		case "open":
 			fmt.Printf("%s: %s subscription established\n", timeT, NtfyServer)
-			sendToSlack("bot restarted; %s subscription established", NtfyServer)
+			sendToSlack("bot restarted; " + NtfyServer +" subscription established")
 		case "keepalive":
 			fmt.Printf("%s: keepalive\n", timeT)
 		case "message":
