@@ -1,21 +1,24 @@
 package main
 
 import (
-	slack "github.com/ashwanthkumar/slack-go-webhook"
-
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
+	slack "github.com/ashwanthkumar/slack-go-webhook"
 	"log"
 	"net/http"
 	"os"
 	"time"
 )
 
-const VERSION = "v1 2022-10-26"
-const NtfyServer = "ntfy.sh"
-const NtfyTopic = "<ntfy-topic-goes-here>"
-const SlackWebHookUrl = "<slack-webhook-url-goes-here>"
+const VERSION = "v1 2022-10-31"
+const UpstreamNtfyServer = "ntfy.sh"
+
+var defaultNtfyDomain = UpstreamNtfyServer
+var ntfyDomain *string
+var ntfyTopic *string
+var slackWebhookUrl *string
 
 type NtfyMessage struct {
 	Id      string
@@ -28,24 +31,36 @@ type NtfyMessage struct {
 
 func sendToSlack(message string) {
 	payload := slack.Payload{
-		Text: "(" + NtfyTopic + ") " + message,
+		Text: "(" + *ntfyTopic + ") " + message,
 	}
 
-	err := slack.Send(SlackWebHookUrl, "", payload)
+	err := slack.Send(*slackWebhookUrl, "", payload)
 	if len(err) > 0 {
 		fmt.Printf("error: %s\n", err)
 	}
 }
 
 func main() {
-	if len(os.Args[1:]) > 0 {
-		if os.Args[1] == "-v" {
-			println(VERSION)
-			os.Exit(0)
-		}
+	var envNtfyDomain, ok = os.LookupEnv("NTFY_DOMAIN")
+	if ok {
+		defaultNtfyDomain = envNtfyDomain
+	}
+	envNtfyTopic, ok := os.LookupEnv("NTFY_TOPIC")
+	envSlackWebhookUrl, ok := os.LookupEnv("SLACK_WEBHOOK_URL")
+
+	ntfyDomain = flag.String("ntfy-domain", defaultNtfyDomain, "Choose the ntfy server to interact with.\nDefaults to "+UpstreamNtfyServer+" or the value of the NTFY_DOMAIN env var, if it is set")
+	ntfyTopic = flag.String("ntfy-topic", envNtfyTopic, "Choose the ntfy topic to interact with\nDefaults to the value of the NTFY_TOPIC env var, if it is set")
+	slackWebhookUrl = flag.String("slack-webhook", envSlackWebhookUrl, "Choose the slack webhook url to send messages to\nDefaults to the value of the SLACK_WEBHOOK_URL env var, if it is set")
+	version := flag.Bool("v", false, "prints current ntfy-to-slack version")
+
+	flag.Parse()
+
+	if *version {
+		println(VERSION)
+		os.Exit(0)
 	}
 
-	resp, err := http.Get("https://" + NtfyServer + "/" + NtfyTopic + "/json")
+	resp, err := http.Get("https://" + *ntfyDomain + "/" + *ntfyTopic + "/json")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -66,8 +81,8 @@ func main() {
 
 		switch msg.Event {
 		case "open":
-			fmt.Printf("%s: %s subscription established\n", timeT, NtfyServer)
-			sendToSlack("bot restarted; " + NtfyServer +" subscription established")
+			fmt.Printf("%s: %s subscription established\n", timeT, *ntfyDomain)
+			sendToSlack("bot restarted; " + *ntfyDomain + " subscription established")
 		case "keepalive":
 			fmt.Printf("%s: keepalive\n", timeT)
 		case "message":
