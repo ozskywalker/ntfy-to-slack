@@ -5,11 +5,13 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	slack "github.com/ashwanthkumar/slack-go-webhook"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
+
+	slack "github.com/ashwanthkumar/slack-go-webhook"
 )
 
 const VERSION = "v1 2022-10-31"
@@ -62,6 +64,13 @@ func main() {
 
 	resp, err := http.Get("https://" + *ntfyDomain + "/" + *ntfyTopic + "/json")
 	if err != nil {
+		sendToSlack("bot error: error on https attempt. waiting 30 seconds before restarting.")
+		time.Sleep(30 * time.Second)
+		log.Fatal(err)
+	} else if resp.StatusCode != http.StatusOK {
+		sendToSlack("bot error: expected 200 OK from " + *ntfyDomain + ", instead: " + strconv.Itoa(resp.StatusCode) + ". waiting 30 seconds before restarting.")
+		fmt.Printf("bot error: expected 200 OK from %s, instead: %s. waiting 30 seconds before restarting.", *ntfyDomain, strconv.Itoa(resp.StatusCode))
+		time.Sleep(30 * time.Second)
 		log.Fatal(err)
 	}
 	defer resp.Body.Close()
