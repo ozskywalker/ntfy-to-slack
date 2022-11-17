@@ -14,7 +14,7 @@ import (
 	slack "github.com/ashwanthkumar/slack-go-webhook"
 )
 
-const VERSION = "v1 2022-10-31"
+const VERSION = "v1.1 2022-11-16"
 const UpstreamNtfyServer = "ntfy.sh"
 
 var defaultNtfyDomain = UpstreamNtfyServer
@@ -36,9 +36,8 @@ func sendToSlack(message string) {
 		Text: "(" + *ntfyTopic + ") " + message,
 	}
 
-	err := slack.Send(*slackWebhookUrl, "", payload)
-	if len(err) > 0 {
-		fmt.Printf("error: %s\n", err)
+	if err := slack.Send(*slackWebhookUrl, "", payload); len(err) > 0 {
+		log.Panic("sendToSlack: something went wrong", err[0])
 	}
 }
 
