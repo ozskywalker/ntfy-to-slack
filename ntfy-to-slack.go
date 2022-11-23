@@ -63,7 +63,7 @@ func main() {
 
 	resp, err := http.Get("https://" + *ntfyDomain + "/" + *ntfyTopic + "/json")
 	if err != nil {
-		sendToSlack("bot error: error on https attempt. waiting 30 seconds before restarting.")
+		fmt.Printf("bot error: error on https attempt. verify network connectivity is OK. waiting 30 seconds before restarting.")
 		time.Sleep(30 * time.Second)
 		log.Fatal(err)
 	} else if resp.StatusCode != http.StatusOK {
