@@ -1,6 +1,6 @@
 module github.com/ozskywalker/ntfy-to-slack
 
-go 1.19
+go 1.20
 
 require github.com/ashwanthkumar/slack-go-webhook v0.0.0-20200209025033-430dd4e66960
 

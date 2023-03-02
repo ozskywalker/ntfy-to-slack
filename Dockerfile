@@ -1,4 +1,4 @@
-FROM golang:1.19.3-alpine AS build-env
+FROM golang:1.20.1-alpine AS build-env
 ADD . /src
 RUN cd /src && go build -o ntfy-to-slack
 
