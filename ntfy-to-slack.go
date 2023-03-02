@@ -14,12 +14,13 @@ import (
 	slack "github.com/ashwanthkumar/slack-go-webhook"
 )
 
-const VERSION = "v1.1 2022-11-16"
+const VERSION = "v1.2 2023-03-01"
 const UpstreamNtfyServer = "ntfy.sh"
 
 var defaultNtfyDomain = UpstreamNtfyServer
 var ntfyDomain *string
 var ntfyTopic *string
+var ntfyAuth *string
 var slackWebhookUrl *string
 
 type NtfyMessage struct {
@@ -47,10 +48,12 @@ func main() {
 		defaultNtfyDomain = envNtfyDomain
 	}
 	envNtfyTopic, ok := os.LookupEnv("NTFY_TOPIC")
+	envNtfyAuth, ok := os.LookupEnv("NTFY_AUTH")
 	envSlackWebhookUrl, ok := os.LookupEnv("SLACK_WEBHOOK_URL")
 
 	ntfyDomain = flag.String("ntfy-domain", defaultNtfyDomain, "Choose the ntfy server to interact with.\nDefaults to "+UpstreamNtfyServer+" or the value of the NTFY_DOMAIN env var, if it is set")
 	ntfyTopic = flag.String("ntfy-topic", envNtfyTopic, "Choose the ntfy topic to interact with\nDefaults to the value of the NTFY_TOPIC env var, if it is set")
+	ntfyAuth = flag.String("ntfy-auth", envNtfyAuth, "Specify token for reserved topics")
 	slackWebhookUrl = flag.String("slack-webhook", envSlackWebhookUrl, "Choose the slack webhook url to send messages to\nDefaults to the value of the SLACK_WEBHOOK_URL env var, if it is set")
 	version := flag.Bool("v", false, "prints current ntfy-to-slack version")
 
@@ -61,7 +64,13 @@ func main() {
 		os.Exit(0)
 	}
 
-	resp, err := http.Get("https://" + *ntfyDomain + "/" + *ntfyTopic + "/json")
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", "https://"+*ntfyDomain+"/"+*ntfyTopic+"/json", nil)
+	if ntfyAuth != nil {
+		req.Header.Add("Authorization", "Bearer "+*ntfyAuth)
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("bot error: error on https attempt. verify network connectivity is OK. waiting 30 seconds before restarting.")
 		time.Sleep(30 * time.Second)
