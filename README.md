@@ -69,4 +69,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments
 
 - Thanks to [ntfy.sh](https://ntfy.sh) for the excellent notification service
-- Special thanks to [@schaluerlauer](https://github.com/schaluerlauer) for some guidance thru his fork
+- Special thanks to [@schlauerlauer](https://github.com/schlauerlauer) for some guidance thru his fork
