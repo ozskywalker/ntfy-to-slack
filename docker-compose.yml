@@ -1,0 +1,20 @@
+services:
+  ntfy-to-slack:
+    build:
+      context: https://github.com/ozskywalker/ntfy-to-slack.git
+      dockerfile: Dockerfile
+
+    container_name: ntfy-to-slack
+    environment:
+      - NTFY_DOMAIN=${NTFY_DOMAIN}
+      - NTFY_TOPIC=${NTFY_TOPIC}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - NTFY_AUTH=${NTFY_AUTH}
+      
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "ps", "aux", "|", "grep", "ntfy-to-slack"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 10s
