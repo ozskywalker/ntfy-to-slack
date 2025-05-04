@@ -1,8 +1,10 @@
-FROM golang:1.24.2 AS build-env
+FROM golang:1.24.2-alpine3.21 AS build-env
 ADD . /src
-RUN cd /src && go build -o ntfy-to-slack
+WORKDIR /src
+RUN go build -o /src/ntfy-to-slack || (echo "Build failed" && exit 1)
 
-FROM alpine
+FROM alpine:3.21
 WORKDIR /app
 COPY --from=build-env /src/ntfy-to-slack /app/
-ENTRYPOINT /app/ntfy-to-slack
+
+ENTRYPOINT ["/app/ntfy-to-slack"]
