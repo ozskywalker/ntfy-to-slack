@@ -145,7 +145,6 @@ func TestValidateTopic(t *testing.T) {
 	}
 }
 
-
 func TestNtfyMessageUnmarshaling(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -190,14 +189,14 @@ func TestNtfyMessageUnmarshaling(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var msg config.NtfyMessage
 			err := json.Unmarshal([]byte(tt.jsonInput), &msg)
-			
+
 			if tt.shouldError {
 				if err == nil {
 					t.Error("Expected error but got none")
 				}
 				return
 			}
-			
+
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 				return

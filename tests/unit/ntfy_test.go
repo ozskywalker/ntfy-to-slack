@@ -12,7 +12,6 @@ import (
 	"github.com/ozskywalker/ntfy-to-slack/internal/ntfy"
 )
 
-
 func TestNewNtfyClient(t *testing.T) {
 	tests := []struct {
 		name   string
@@ -30,7 +29,7 @@ func TestNewNtfyClient(t *testing.T) {
 		},
 		{
 			name:   "with nil client creates default",
-			domain: "ntfy.sh", 
+			domain: "ntfy.sh",
 			topic:  "test-topic",
 			auth:   "",
 			client: nil,
@@ -40,11 +39,11 @@ func TestNewNtfyClient(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			client := ntfy.NewClient(tt.domain, tt.topic, tt.auth, tt.client)
-			
+
 			if client == nil {
 				t.Error("ntfy.NewClient() returned nil")
 			}
-			
+
 			// Note: internal fields are not exported, so we can't test them directly
 			// The fact that NewClient() doesn't panic and returns a non-nil client is sufficient
 		})
@@ -121,7 +120,7 @@ func TestNtfyHTTPClient_Connect(t *testing.T) {
 		},
 		{
 			name:   "HTTP 401 error",
-			domain: "ntfy.sh", 
+			domain: "ntfy.sh",
 			topic:  "test-topic",
 			auth:   "",
 			mockResponse: &http.Response{
@@ -135,7 +134,7 @@ func TestNtfyHTTPClient_Connect(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedReq *http.Request
-			
+
 			mockClient := &MockHTTPClient{
 				DoFunc: func(req *http.Request) (*http.Response, error) {
 					capturedReq = req
@@ -165,12 +164,12 @@ func TestNtfyHTTPClient_Connect(t *testing.T) {
 				if capturedReq.Method != http.MethodGet {
 					t.Errorf("Expected GET request, got %s", capturedReq.Method)
 				}
-				
+
 				expectedURL := "https://" + tt.domain + "/" + tt.topic + "/json"
 				if capturedReq.URL.String() != expectedURL {
 					t.Errorf("Expected URL %s, got %s", expectedURL, capturedReq.URL.String())
 				}
-				
+
 				if tt.auth != "" {
 					authHeader := capturedReq.Header.Get("Authorization")
 					expectedAuth := "Bearer " + tt.auth
@@ -194,13 +193,13 @@ func TestNtfyHTTPClient_Connect_Integration(t *testing.T) {
 		if r.Method != http.MethodGet {
 			t.Errorf("Expected GET, got %s", r.Method)
 		}
-		
+
 		// Check URL path
 		expectedPath := "/test-topic/json"
 		if r.URL.Path != expectedPath {
 			t.Errorf("Expected path %s, got %s", expectedPath, r.URL.Path)
 		}
-		
+
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"event":"open","topic":"test-topic"}`))
 	}))
@@ -215,15 +214,15 @@ func TestNtfyHTTPClient_Connect_Integration(t *testing.T) {
 			return http.DefaultClient.Do(req)
 		},
 	}
-	
+
 	// Use a valid domain for validation but the mock client will redirect to test server
 	client := ntfy.NewClient("ntfy.sh", "test-topic", "", mockClient)
-	
+
 	reader, err := client.Connect()
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	
+
 	if reader == nil {
 		t.Error("Expected reader but got nil")
 	} else {
@@ -234,9 +233,9 @@ func TestNtfyHTTPClient_Connect_Integration(t *testing.T) {
 func TestNtfyHTTPClient_Connect_URLEncoding(t *testing.T) {
 	// Test URL encoding of topic names
 	tests := []struct {
-		name          string
-		topic         string
-		expectedPath  string
+		name         string
+		topic        string
+		expectedPath string
 	}{
 		{
 			name:         "simple topic",
@@ -253,7 +252,7 @@ func TestNtfyHTTPClient_Connect_URLEncoding(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedReq *http.Request
-			
+
 			mockClient := &MockHTTPClient{
 				DoFunc: func(req *http.Request) (*http.Response, error) {
 					capturedReq = req
@@ -266,14 +265,14 @@ func TestNtfyHTTPClient_Connect_URLEncoding(t *testing.T) {
 
 			client := ntfy.NewClient("ntfy.sh", tt.topic, "", mockClient)
 			reader, err := client.Connect()
-			
+
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
 			if reader != nil {
 				reader.Close()
 			}
-			
+
 			if capturedReq != nil && capturedReq.URL.Path != tt.expectedPath {
 				t.Errorf("Expected path %s, got %s", tt.expectedPath, capturedReq.URL.Path)
 			}

@@ -99,7 +99,7 @@ func TestMain_VersionFlag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	
+
 	if !cfg.ShowVersion {
 		t.Error("Expected ShowVersion to be true")
 	}
@@ -111,7 +111,7 @@ func TestMain_HelpFlag(t *testing.T) {
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-	
+
 	// ShowHelp is not exposed via getter, skip this check
 	// The logic still works internally but we can't test it directly
 	_ = cfg
@@ -153,14 +153,14 @@ func TestMain_EnvironmentPrecedence(t *testing.T) {
 
 func TestSetupLogging_EdgeCases(t *testing.T) {
 	tests := []string{
-		"DEBUG",    // Different case
-		"Info",     // Mixed case  
-		"WARN",     // Upper case
-		"ERROR",    // Upper case
-		"trace",    // Invalid level
-		"verbose",  // Invalid level
-		"",         // Empty string
-		"   ",      // Whitespace
+		"DEBUG",   // Different case
+		"Info",    // Mixed case
+		"WARN",    // Upper case
+		"ERROR",   // Upper case
+		"trace",   // Invalid level
+		"verbose", // Invalid level
+		"",        // Empty string
+		"   ",     // Whitespace
 	}
 
 	for _, logLevel := range tests {

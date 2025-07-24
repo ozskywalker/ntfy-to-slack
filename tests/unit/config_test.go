@@ -20,8 +20,8 @@ func TestNewConfig(t *testing.T) {
 			name: "flags override environment",
 			args: []string{"--ntfy-topic", "test-topic", "--slack-webhook", "https://hooks.slack.com/test"},
 			env: map[string]string{
-				"NTFY_TOPIC":         "env-topic",
-				"SLACK_WEBHOOK_URL":  "https://hooks.slack.com/env",
+				"NTFY_TOPIC":        "env-topic",
+				"SLACK_WEBHOOK_URL": "https://hooks.slack.com/env",
 			},
 			expected: &config.Config{
 				NtfyDomain:      "ntfy.sh",
@@ -35,11 +35,11 @@ func TestNewConfig(t *testing.T) {
 			name: "environment variables used when no flags",
 			args: []string{},
 			env: map[string]string{
-				"NTFY_DOMAIN":        "custom.ntfy.sh",
-				"NTFY_TOPIC":         "env-topic",
-				"NTFY_AUTH":          "auth-token",
-				"SLACK_WEBHOOK_URL":  "https://hooks.slack.com/env",
-				"LOG_LEVEL":          "debug",
+				"NTFY_DOMAIN":       "custom.ntfy.sh",
+				"NTFY_TOPIC":        "env-topic",
+				"NTFY_AUTH":         "auth-token",
+				"SLACK_WEBHOOK_URL": "https://hooks.slack.com/env",
+				"LOG_LEVEL":         "debug",
 			},
 			expected: &config.Config{
 				NtfyDomain:      "custom.ntfy.sh",
@@ -222,7 +222,7 @@ func TestConfigValidate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()
-			
+
 			if tt.wantErr {
 				if err == nil {
 					t.Error("Expected error but got none")
@@ -273,55 +273,55 @@ func TestGetEnvOrDefault(t *testing.T) {
 	t.Skip("getEnvOrDefault is internal function, not testable")
 
 	/*
-	tests := []struct {
-		name         string
-		key          string
-		defaultValue string
-		envValue     string
-		expected     string
-	}{
-		{
-			name:         "environment variable set",
-			key:          "TEST_VAR",
-			defaultValue: "default",
-			envValue:     "env-value",
-			expected:     "env-value",
-		},
-		{
-			name:         "environment variable not set",
-			key:          "TEST_VAR_NOT_SET",
-			defaultValue: "default",
-			envValue:     "",
-			expected:     "default",
-		},
-		{
-			name:         "empty environment variable",
-			key:          "TEST_VAR_EMPTY",
-			defaultValue: "default",
-			envValue:     "",
-			expected:     "default",
-		},
-	}
+		tests := []struct {
+			name         string
+			key          string
+			defaultValue string
+			envValue     string
+			expected     string
+		}{
+			{
+				name:         "environment variable set",
+				key:          "TEST_VAR",
+				defaultValue: "default",
+				envValue:     "env-value",
+				expected:     "env-value",
+			},
+			{
+				name:         "environment variable not set",
+				key:          "TEST_VAR_NOT_SET",
+				defaultValue: "default",
+				envValue:     "",
+				expected:     "default",
+			},
+			{
+				name:         "empty environment variable",
+				key:          "TEST_VAR_EMPTY",
+				defaultValue: "default",
+				envValue:     "",
+				expected:     "default",
+			},
+		}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Set up environment
-			oldValue := os.Getenv(tt.key)
-			if tt.envValue != "" {
-				os.Setenv(tt.key, tt.envValue)
-			} else {
-				os.Unsetenv(tt.key)
-			}
-			defer func() {
-				if oldValue != "" {
-					os.Setenv(tt.key, oldValue)
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				// Set up environment
+				oldValue := os.Getenv(tt.key)
+				if tt.envValue != "" {
+					os.Setenv(tt.key, tt.envValue)
 				} else {
 					os.Unsetenv(tt.key)
 				}
-			}()
+				defer func() {
+					if oldValue != "" {
+						os.Setenv(tt.key, oldValue)
+					} else {
+						os.Unsetenv(tt.key)
+					}
+				}()
 
-			// Test skipped - function not exported
-		})
-	}
+				// Test skipped - function not exported
+			})
+		}
 	*/
 }

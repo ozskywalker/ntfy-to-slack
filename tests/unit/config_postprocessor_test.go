@@ -6,7 +6,6 @@ import (
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
 )
 
-
 func TestNewConfig_PostProcessorFlags(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -42,19 +41,19 @@ func TestNewConfig_PostProcessorFlags(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
-			
+
 			if webhook, ok := tt.expected["webhook"]; ok {
 				if config.PostProcessWebhook != webhook {
 					t.Errorf("Expected webhook %q, got %q", webhook, config.PostProcessWebhook)
 				}
 			}
-			
+
 			if templateFile, ok := tt.expected["templateFile"]; ok {
 				if config.PostProcessTemplateFile != templateFile {
 					t.Errorf("Expected template file %q, got %q", templateFile, config.PostProcessTemplateFile)
 				}
 			}
-			
+
 			if template, ok := tt.expected["template"]; ok {
 				if config.PostProcessTemplate != template {
 					t.Errorf("Expected template %q, got %q", template, config.PostProcessTemplate)

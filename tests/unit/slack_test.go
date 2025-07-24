@@ -11,7 +11,6 @@ import (
 	"github.com/ozskywalker/ntfy-to-slack/internal/slack"
 )
 
-
 func TestNewSlackSender(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -36,11 +35,11 @@ func TestNewSlackSender(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sender := slack.NewSender(tt.webhookURL, tt.client)
-			
+
 			if (sender == nil) != tt.wantNil {
 				t.Errorf("slack.NewSender() = %v, wantNil %v", sender == nil, tt.wantNil)
 			}
-			
+
 			// Note: webhookURL is not exported, so we can't test it directly
 			// The fact that NewSender() doesn't panic and returns a non-nil sender is sufficient
 		})
@@ -49,12 +48,12 @@ func TestNewSlackSender(t *testing.T) {
 
 func TestSlackSender_Send(t *testing.T) {
 	tests := []struct {
-		name           string
-		message        *config.SlackMessage
-		mockResponse   *http.Response
-		mockError      error
-		wantErr        bool
-		validateReq    bool
+		name         string
+		message      *config.SlackMessage
+		mockResponse *http.Response
+		mockError    error
+		wantErr      bool
+		validateReq  bool
 	}{
 		{
 			name:    "successful send",
@@ -72,8 +71,8 @@ func TestSlackSender_Send(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "HTTP client error",
-			message: &config.SlackMessage{Text: "test message"},
+			name:      "HTTP client error",
+			message:   &config.SlackMessage{Text: "test message"},
 			mockError: errors.New("network error"),
 			wantErr:   true,
 		},
@@ -87,7 +86,7 @@ func TestSlackSender_Send(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "HTTP 500 error", 
+			name:    "HTTP 500 error",
 			message: &config.SlackMessage{Text: "test message"},
 			mockResponse: &http.Response{
 				StatusCode: http.StatusInternalServerError,
@@ -100,7 +99,7 @@ func TestSlackSender_Send(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedReq *http.Request
-			
+
 			mockClient := &MockHTTPClient{
 				DoFunc: func(req *http.Request) (*http.Response, error) {
 					capturedReq = req
@@ -149,7 +148,7 @@ func TestSlackSender_Send_Integration(t *testing.T) {
 
 	sender := slack.NewSender(server.URL, nil)
 	err := sender.Send(&config.SlackMessage{Text: "integration test"})
-	
+
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -166,7 +165,7 @@ func TestSlackSender_Send_Timeout(t *testing.T) {
 	// Create sender with default client (has 3 second timeout)
 	sender := slack.NewSender(server.URL, nil)
 	err := sender.Send(&config.SlackMessage{Text: "timeout test"})
-	
+
 	if err == nil {
 		t.Error("Expected timeout error but got none")
 	}

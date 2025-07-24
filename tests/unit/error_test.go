@@ -13,7 +13,6 @@ import (
 	"github.com/ozskywalker/ntfy-to-slack/internal/slack"
 )
 
-
 // Test various error conditions and edge cases across the application
 
 func TestNtfyClient_ErrorConditions(t *testing.T) {
@@ -37,7 +36,7 @@ func TestNtfyClient_ErrorConditions(t *testing.T) {
 		{
 			name:        "DNS resolution failure",
 			domain:      "ntfy.sh",
-			topic:       "test", 
+			topic:       "test",
 			mockError:   errors.New("no such host"),
 			wantErr:     true,
 			errContains: "no such host",
@@ -51,16 +50,16 @@ func TestNtfyClient_ErrorConditions(t *testing.T) {
 			errContains: "connection refused",
 		},
 		{
-			name:      "empty domain after validation",
-			domain:    "",
-			topic:     "test",
-			wantErr:   true,
+			name:    "empty domain after validation",
+			domain:  "",
+			topic:   "test",
+			wantErr: true,
 		},
 		{
-			name:      "empty topic after validation", 
-			domain:    "ntfy.sh",
-			topic:     "",
-			wantErr:   true,
+			name:    "empty topic after validation",
+			domain:  "ntfy.sh",
+			topic:   "",
+			wantErr: true,
 		},
 	}
 
@@ -165,11 +164,11 @@ func TestSlackSender_ErrorConditions(t *testing.T) {
 
 func TestMessageProcessor_ErrorRecovery(t *testing.T) {
 	tests := []struct {
-		name            string
-		input           string
-		senderErrors    []error // Errors for each send attempt
-		expectedSends   int     // How many sends should be attempted
-		expectContinue  bool    // Should processing continue after errors
+		name           string
+		input          string
+		senderErrors   []error // Errors for each send attempt
+		expectedSends  int     // How many sends should be attempted
+		expectContinue bool    // Should processing continue after errors
 	}{
 		{
 			name: "continue processing after send error",
@@ -203,7 +202,7 @@ another invalid line
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			sendCount := 0
-			
+
 			// Create a custom sender that tracks calls and simulates errors
 			sender := &CustomErrorSender{
 				SentMessages: []config.SlackMessage{},
@@ -213,9 +212,9 @@ another invalid line
 
 			processor := processor.New(sender)
 			reader := strings.NewReader(tt.input)
-			
+
 			err := processor.ProcessStream(reader)
-			
+
 			// ProcessStream should not return errors for individual message failures
 			if err != nil {
 				t.Errorf("ProcessStream() should not return error for individual failures, got: %v", err)
@@ -227,7 +226,6 @@ another invalid line
 		})
 	}
 }
-
 
 func TestValidation_EdgeCases(t *testing.T) {
 	tests := []struct {
@@ -284,7 +282,7 @@ func TestValidation_EdgeCases(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			_, domainErr := config.ValidateDomain(tt.domain)
 			_, topicErr := config.ValidateTopic(tt.topic)
-			
+
 			hasErr := domainErr != nil || topicErr != nil
 			if hasErr != tt.wantErr {
 				t.Errorf("validation error = %v (domain) or %v (topic), wantErr %v", domainErr, topicErr, tt.wantErr)

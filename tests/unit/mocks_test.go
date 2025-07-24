@@ -45,7 +45,7 @@ func (m *MockConfigProvider) GetPostProcessTemplateFile() string { return m.Post
 func (m *MockConfigProvider) GetWebhookTimeoutSeconds() int      { return m.WebhookTimeoutSeconds }
 func (m *MockConfigProvider) GetWebhookRetries() int             { return m.WebhookRetries }
 func (m *MockConfigProvider) GetWebhookMaxResponseSizeMB() int   { return m.WebhookMaxResponseSizeMB }
-func (m *MockConfigProvider) Validate() error                   { return nil }
+func (m *MockConfigProvider) Validate() error                    { return nil }
 
 // MockNtfyClient implements ntfy.Client interface for testing
 type MockNtfyClient struct {
@@ -69,12 +69,12 @@ func (m *MockStreamProcessor) ProcessStream(reader io.Reader) error {
 	if m.ProcessStreamFunc != nil {
 		return m.ProcessStreamFunc(reader)
 	}
-	
+
 	// Capture input for verification
 	if data, err := io.ReadAll(reader); err == nil {
 		m.ProcessedInputs = append(m.ProcessedInputs, string(data))
 	}
-	
+
 	return nil
 }
 

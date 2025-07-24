@@ -50,12 +50,12 @@ func NewMustachePostProcessor(templateContent string) (*MustachePostProcessor, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse template: %w", err)
 	}
-	
+
 	// Additional validation: try executing with empty data to catch runtime issues
 	if err := validateTemplateExecution(tmpl); err != nil {
 		return nil, fmt.Errorf("template validation failed: %w", err)
 	}
-	
+
 	return &MustachePostProcessor{
 		template: tmpl,
 	}, nil
@@ -69,7 +69,7 @@ func validateTemplateExecution(tmpl *template.Template) error {
 	if err := tmpl.Execute(&buf, testMessage); err != nil {
 		return fmt.Errorf("template execution failed with empty data: %w", err)
 	}
-	
+
 	// Test with sample data to catch field access issues
 	sampleMessage := &NtfyMessage{
 		Id:      "test-id",
@@ -79,12 +79,12 @@ func validateTemplateExecution(tmpl *template.Template) error {
 		Title:   "Test Title",
 		Message: "Test Message",
 	}
-	
+
 	buf.Reset()
 	if err := tmpl.Execute(&buf, sampleMessage); err != nil {
 		return fmt.Errorf("template execution failed with sample data: %w", err)
 	}
-	
+
 	return nil
 }
 
@@ -94,7 +94,7 @@ func NewMustachePostProcessorFromFile(filePath string) (*MustachePostProcessor, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to read template file %s: %w", filePath, err)
 	}
-	
+
 	return NewMustachePostProcessor(string(content))
 }
 
@@ -105,7 +105,7 @@ func (m *MustachePostProcessor) Process(message *NtfyMessage) (*SlackMessage, er
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute template: %w", err)
 	}
-	
+
 	return &SlackMessage{
 		Text: buf.String(),
 	}, nil
@@ -113,11 +113,11 @@ func (m *MustachePostProcessor) Process(message *NtfyMessage) (*SlackMessage, er
 
 // WebhookPostProcessor processes messages by calling an external webhook
 type WebhookPostProcessor struct {
-	webhookURL           string
-	client               HTTPClient
-	timeoutSeconds       int
-	maxRetries           int
-	maxResponseSizeMB    int
+	webhookURL        string
+	client            HTTPClient
+	timeoutSeconds    int
+	maxRetries        int
+	maxResponseSizeMB int
 }
 
 // NewWebhookPostProcessor creates a new webhook post-processor
@@ -127,13 +127,13 @@ func NewWebhookPostProcessor(webhookURL string, client HTTPClient) *WebhookPostP
 			Timeout: 30 * time.Second,
 		}
 	}
-	
+
 	return &WebhookPostProcessor{
-		webhookURL:           webhookURL,
-		client:               client,
-		timeoutSeconds:       30,
-		maxRetries:           3,
-		maxResponseSizeMB:    1,
+		webhookURL:        webhookURL,
+		client:            client,
+		timeoutSeconds:    30,
+		maxRetries:        3,
+		maxResponseSizeMB: 1,
 	}
 }
 
@@ -142,13 +142,13 @@ func NewWebhookPostProcessorWithConfig(webhookURL string, timeoutSeconds, maxRet
 	client := &http.Client{
 		Timeout: time.Duration(timeoutSeconds) * time.Second,
 	}
-	
+
 	return &WebhookPostProcessor{
-		webhookURL:           webhookURL,
-		client:               client,
-		timeoutSeconds:       timeoutSeconds,
-		maxRetries:           maxRetries,
-		maxResponseSizeMB:    maxResponseSizeMB,
+		webhookURL:        webhookURL,
+		client:            client,
+		timeoutSeconds:    timeoutSeconds,
+		maxRetries:        maxRetries,
+		maxResponseSizeMB: maxResponseSizeMB,
 	}
 }
 
@@ -159,7 +159,7 @@ func (w *WebhookPostProcessor) Process(message *NtfyMessage) (*SlackMessage, err
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal message: %w", err)
 	}
-	
+
 	var lastErr error
 	for attempt := 0; attempt <= w.maxRetries; attempt++ {
 		if attempt > 0 {
@@ -168,16 +168,16 @@ func (w *WebhookPostProcessor) Process(message *NtfyMessage) (*SlackMessage, err
 			slog.Debug("retrying webhook request", "attempt", attempt, "backoff_seconds", backoffSeconds)
 			time.Sleep(time.Duration(backoffSeconds) * time.Second)
 		}
-		
+
 		// Create HTTP request for each attempt to avoid body consumption issues
 		req, err := http.NewRequest(http.MethodPost, w.webhookURL, bytes.NewBuffer(payload))
 		if err != nil {
 			return nil, fmt.Errorf("failed to create request: %w", err)
 		}
-		
+
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("User-Agent", "ntfy-to-slack/2.0")
-		
+
 		// Make the request
 		resp, err := w.client.Do(req)
 		if err != nil {
@@ -185,27 +185,27 @@ func (w *WebhookPostProcessor) Process(message *NtfyMessage) (*SlackMessage, err
 			slog.Debug("webhook request failed", "attempt", attempt+1, "err", err)
 			continue
 		}
-		
+
 		// Check status code
 		if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 			body, _ := io.ReadAll(io.LimitReader(resp.Body, 1024)) // Limit error response to 1KB
 			resp.Body.Close()
 			lastErr = fmt.Errorf("webhook returned status %d: %s", resp.StatusCode, string(body))
-			
+
 			// Don't retry on client errors (4xx), only on server errors (5xx) and network issues
 			if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 				slog.Debug("webhook client error, not retrying", "status", resp.StatusCode)
 				return nil, lastErr
 			}
-			
+
 			slog.Debug("webhook server error, will retry", "status", resp.StatusCode, "attempt", attempt+1)
 			continue
 		}
-		
+
 		// Limit response size to prevent memory exhaustion
 		maxBytes := int64(w.maxResponseSizeMB * 1024 * 1024)
 		limitedReader := io.LimitReader(resp.Body, maxBytes)
-		
+
 		// Read response
 		body, err := io.ReadAll(limitedReader)
 		resp.Body.Close()
@@ -214,12 +214,12 @@ func (w *WebhookPostProcessor) Process(message *NtfyMessage) (*SlackMessage, err
 			slog.Debug("failed to read webhook response", "attempt", attempt+1, "err", err)
 			continue
 		}
-		
+
 		// Check if response was truncated
 		if int64(len(body)) >= maxBytes {
 			slog.Warn("webhook response truncated due to size limit", "max_size_mb", w.maxResponseSizeMB)
 		}
-		
+
 		// Try to unmarshal as slack message
 		var slackMsg SlackMessage
 		if err := json.Unmarshal(body, &slackMsg); err != nil {
@@ -227,10 +227,10 @@ func (w *WebhookPostProcessor) Process(message *NtfyMessage) (*SlackMessage, err
 			slackMsg.Text = string(body)
 			slog.Debug("webhook response treated as plain text", "response", string(body))
 		}
-		
+
 		slog.Debug("webhook request successful", "attempt", attempt+1, "response_size", len(body))
 		return &slackMsg, nil
 	}
-	
+
 	return nil, fmt.Errorf("webhook failed after %d retries: %w", w.maxRetries+1, lastErr)
 }

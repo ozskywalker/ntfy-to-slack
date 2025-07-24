@@ -37,12 +37,12 @@ func (s *Sender) Send(message *config.SlackMessage) error {
 	if message == nil {
 		return errors.New("message is nil")
 	}
-	
+
 	jsonBytes, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
-	
+
 	req, err := http.NewRequest(
 		http.MethodPost,
 		s.webhookURL,
@@ -52,7 +52,7 @@ func (s *Sender) Send(message *config.SlackMessage) error {
 		return err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return err
@@ -62,17 +62,17 @@ func (s *Sender) Send(message *config.SlackMessage) error {
 			slog.Error("error closing response body", "err", err)
 		}
 	}(resp.Body)
-	
+
 	if body, err := io.ReadAll(resp.Body); err != nil {
 		slog.Error("error parsing body", "err", err)
 		return err
 	} else {
 		slog.Debug("slack response", "status", resp.StatusCode, "body", string(body))
 	}
-	
+
 	if resp.StatusCode >= 400 {
 		return errors.New("error status code " + strconv.FormatInt(int64(resp.StatusCode), 10))
 	}
-	
+
 	return nil
 }

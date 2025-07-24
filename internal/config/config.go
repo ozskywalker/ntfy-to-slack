@@ -44,10 +44,10 @@ type Config struct {
 // New creates a new configuration from command line args and environment
 func New(args []string) (*Config, error) {
 	config := &Config{}
-	
+
 	// Create a new flag set to avoid global state
 	fs := flag.NewFlagSet("ntfy-to-slack", flag.ContinueOnError)
-	
+
 	// Get environment variables
 	envNtfyDomain := getEnvOrDefault("NTFY_DOMAIN", "ntfy.sh")
 	envNtfyTopic := os.Getenv("NTFY_TOPIC")
@@ -60,7 +60,7 @@ func New(args []string) (*Config, error) {
 	envWebhookTimeoutSeconds := getEnvOrDefault("WEBHOOK_TIMEOUT_SECONDS", "30")
 	envWebhookRetries := getEnvOrDefault("WEBHOOK_RETRIES", "3")
 	envWebhookMaxResponseSizeMB := getEnvOrDefault("WEBHOOK_MAX_RESPONSE_SIZE_MB", "1")
-	
+
 	// Define flags
 	fs.StringVar(&config.NtfyDomain, "ntfy-domain", envNtfyDomain, "Choose the ntfy server to interact with")
 	fs.StringVar(&config.NtfyTopic, "ntfy-topic", envNtfyTopic, "Choose the ntfy topic to interact with")
@@ -74,37 +74,37 @@ func New(args []string) (*Config, error) {
 	fs.IntVar(&config.WebhookMaxResponseSizeMB, "webhook-max-response-size", 0, "Maximum webhook response size in MB (default: 1)")
 	fs.BoolVar(&config.ShowVersion, "v", false, "prints current ntfy-to-slack version")
 	config.LogLevel = envLogLevel
-	
+
 	// Set defaults for webhook configuration
 	if timeoutSeconds, err := strconv.Atoi(envWebhookTimeoutSeconds); err == nil {
 		config.WebhookTimeoutSeconds = timeoutSeconds
 	} else {
 		config.WebhookTimeoutSeconds = 30
 	}
-	
+
 	if retries, err := strconv.Atoi(envWebhookRetries); err == nil {
 		config.WebhookRetries = retries
 	} else {
 		config.WebhookRetries = 3
 	}
-	
+
 	if maxSize, err := strconv.Atoi(envWebhookMaxResponseSizeMB); err == nil {
 		config.WebhookMaxResponseSizeMB = maxSize
 	} else {
 		config.WebhookMaxResponseSizeMB = 1
 	}
-	
+
 	// Parse arguments
 	err := fs.Parse(args)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse flags: %w", err)
 	}
-	
+
 	// Check for help request (no args and no required env vars)
 	if len(args) == 0 && envNtfyTopic == "" && envSlackWebhookURL == "" {
 		config.ShowHelp = true
 	}
-	
+
 	return config, nil
 }
 
@@ -113,32 +113,32 @@ func (c *Config) Validate() error {
 	if c.ShowVersion || c.ShowHelp {
 		return nil // Skip validation for help/version
 	}
-	
+
 	// Validate required parameters
 	if c.NtfyTopic == "" {
 		return fmt.Errorf("ntfy topic is required")
 	}
-	
+
 	if c.SlackWebhookURL == "" {
 		return fmt.Errorf("Slack webhook URL is required")
 	}
-	
+
 	// Validate domain
 	if _, err := ValidateDomain(c.NtfyDomain); err != nil {
 		return fmt.Errorf("invalid domain: %w", err)
 	}
-	
+
 	// Validate topic
 	if _, err := ValidateTopic(c.NtfyTopic); err != nil {
 		return fmt.Errorf("invalid topic: %w", err)
 	}
-	
+
 	// Validate slack webhook URL
 	webhookURL, err := url.Parse(c.SlackWebhookURL)
 	if err != nil || webhookURL.Scheme != "https" || webhookURL.Host == "" {
 		return fmt.Errorf("invalid Slack webhook URL format. Must be a valid HTTPS URL")
 	}
-	
+
 	// Validate post-processing options (only one allowed)
 	postProcessCount := 0
 	if c.PostProcessWebhook != "" {
@@ -150,11 +150,11 @@ func (c *Config) Validate() error {
 	if c.PostProcessTemplate != "" {
 		postProcessCount++
 	}
-	
+
 	if postProcessCount > 1 {
 		return fmt.Errorf("only one post-processing option can be specified: webhook, template file, or inline template")
 	}
-	
+
 	// Validate webhook URL if specified
 	if c.PostProcessWebhook != "" {
 		webhookURL, err := url.Parse(c.PostProcessWebhook)
@@ -162,22 +162,22 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("invalid post-process webhook URL format. Must be a valid HTTP/HTTPS URL")
 		}
 	}
-	
+
 	// Validate webhook configuration values only if webhook is configured
 	if c.PostProcessWebhook != "" {
 		if c.WebhookTimeoutSeconds < 1 || c.WebhookTimeoutSeconds > 300 {
 			return fmt.Errorf("webhook timeout must be between 1 and 300 seconds, got %d", c.WebhookTimeoutSeconds)
 		}
-		
+
 		if c.WebhookRetries < 0 || c.WebhookRetries > 10 {
 			return fmt.Errorf("webhook retries must be between 0 and 10, got %d", c.WebhookRetries)
 		}
-		
+
 		if c.WebhookMaxResponseSizeMB < 1 || c.WebhookMaxResponseSizeMB > 100 {
 			return fmt.Errorf("webhook max response size must be between 1 and 100 MB, got %d", c.WebhookMaxResponseSizeMB)
 		}
 	}
-	
+
 	return nil
 }
 

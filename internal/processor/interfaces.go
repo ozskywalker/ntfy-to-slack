@@ -21,5 +21,3 @@ type MessageSender interface {
 type StreamProcessor interface {
 	ProcessStream(reader io.Reader) error
 }
-
-

@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration test-coverage build clean help
+.PHONY: test test-unit test-integration test-coverage build clean help fmt fmt-check lint
 
 # Go parameters
 GOCMD=go
@@ -49,8 +49,17 @@ verify: ## Verify dependencies and run tests
 	$(GOMOD) verify
 	make test
 
-lint: ## Run go fmt and go vet
+fmt: ## Format code with go fmt
 	gofmt -s -w .
+
+fmt-check: ## Check if code is properly formatted
+	@if [ "$$(gofmt -s -l . | wc -l)" -gt 0 ]; then \
+		echo "Code is not properly formatted:"; \
+		gofmt -s -l .; \
+		exit 1; \
+	fi
+
+lint: fmt-check ## Run formatting check and go vet
 	$(GOCMD) vet ./cmd/... ./internal/... ./tests/...
 
 all: clean deps lint test build ## Run full build pipeline

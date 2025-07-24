@@ -14,24 +14,24 @@ import (
 
 // App represents the main application
 type App struct {
-	config    config.Provider
+	config     config.Provider
 	ntfyClient ntfy.Client
-	processor processor.StreamProcessor
-	version   string
+	processor  processor.StreamProcessor
+	version    string
 }
 
 // New creates a new application instance
 func New(cfg config.Provider, version string) *App {
 	// Create HTTP client
 	httpClient := &http.Client{}
-	
+
 	// Create Slack sender
 	slackSender := slack.NewSender(cfg.GetSlackWebhookURL(), httpClient)
-	
+
 	// Create post-processor if configured
 	var postProcessor config.PostProcessor
 	var err error
-	
+
 	if cfg.GetPostProcessWebhook() != "" {
 		postProcessor = config.NewWebhookPostProcessorWithConfig(
 			cfg.GetPostProcessWebhook(),
@@ -39,7 +39,7 @@ func New(cfg config.Provider, version string) *App {
 			cfg.GetWebhookRetries(),
 			cfg.GetWebhookMaxResponseSizeMB(),
 		)
-		slog.Info("webhook post-processor configured", 
+		slog.Info("webhook post-processor configured",
 			"url", cfg.GetPostProcessWebhook(),
 			"timeout", cfg.GetWebhookTimeoutSeconds(),
 			"retries", cfg.GetWebhookRetries(),
@@ -59,7 +59,7 @@ func New(cfg config.Provider, version string) *App {
 			slog.Info("inline template post-processor configured")
 		}
 	}
-	
+
 	// Create message processor
 	var msgProcessor processor.StreamProcessor
 	if postProcessor != nil {
@@ -67,7 +67,7 @@ func New(cfg config.Provider, version string) *App {
 	} else {
 		msgProcessor = processor.New(slackSender)
 	}
-	
+
 	// Create ntfy client
 	ntfyClient := ntfy.NewClient(
 		cfg.GetNtfyDomain(),
@@ -75,7 +75,7 @@ func New(cfg config.Provider, version string) *App {
 		cfg.GetNtfyAuth(),
 		httpClient,
 	)
-	
+
 	return &App{
 		config:     cfg,
 		ntfyClient: ntfyClient,
@@ -91,7 +91,7 @@ func (a *App) Run() error {
 			slog.Error("connection failed", "err", err)
 			return err
 		}
-		
+
 		slog.Info("connection closed, restarting in 30 seconds")
 		time.Sleep(30 * time.Second)
 	}
@@ -104,9 +104,9 @@ func (a *App) runOnce() error {
 		return fmt.Errorf("failed to connect to ntfy: %w", err)
 	}
 	defer reader.Close()
-	
+
 	slog.Info("connected to ntfy", "domain", a.config.GetNtfyDomain(), "topic", a.config.GetNtfyTopic())
-	
+
 	return a.processor.ProcessStream(reader)
 }
 

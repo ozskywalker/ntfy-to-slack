@@ -40,12 +40,12 @@ func (p *MessageProcessor) ProcessStream(reader io.Reader) error {
 			slog.Error("error while processing ntfy message", "err", err, "text", scanner.Text())
 			continue
 		}
-		
+
 		if err := p.processMessage(&msg); err != nil {
 			slog.Error("error processing message", "err", err)
 		}
 	}
-	
+
 	return scanner.Err()
 }
 
@@ -69,10 +69,10 @@ func (p *MessageProcessor) processMessage(msg *config.NtfyMessage) error {
 // handleMessageEvent handles ntfy message events
 func (p *MessageProcessor) handleMessageEvent(msg *config.NtfyMessage) error {
 	slog.Info("sending message", "title", msg.Title, "message", msg.Message)
-	
+
 	var slackMsg *config.SlackMessage
 	var err error
-	
+
 	// Use post-processor if available
 	if p.postProcessor != nil {
 		slackMsg, err = p.postProcessor.Process(msg)
@@ -83,7 +83,7 @@ func (p *MessageProcessor) handleMessageEvent(msg *config.NtfyMessage) error {
 	} else {
 		slackMsg = p.createDefaultMessage(msg)
 	}
-	
+
 	return p.sender.Send(slackMsg)
 }
 

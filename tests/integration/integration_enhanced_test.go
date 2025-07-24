@@ -17,38 +17,38 @@ import (
 // TestWebhookPostProcessor_RetryMechanism tests the retry logic with exponential backoff
 func TestWebhookPostProcessor_RetryMechanism(t *testing.T) {
 	tests := []struct {
-		name                string
-		failureAttempts     int
-		totalAttempts      int
-		expectedRetries    int
-		shouldSucceed      bool
-		responseDelay      time.Duration
+		name            string
+		failureAttempts int
+		totalAttempts   int
+		expectedRetries int
+		shouldSucceed   bool
+		responseDelay   time.Duration
 	}{
 		{
 			name:            "succeed on first attempt",
 			failureAttempts: 0,
-			totalAttempts:  1,
+			totalAttempts:   1,
 			expectedRetries: 0,
 			shouldSucceed:   true,
 		},
 		{
 			name:            "succeed on second attempt",
 			failureAttempts: 1,
-			totalAttempts:  2,
+			totalAttempts:   2,
 			expectedRetries: 1,
 			shouldSucceed:   true,
 		},
 		{
 			name:            "fail after all retries",
 			failureAttempts: 5,
-			totalAttempts:  4, // 1 initial + 3 retries
+			totalAttempts:   4, // 1 initial + 3 retries
 			expectedRetries: 3,
 			shouldSucceed:   false,
 		},
 		{
 			name:            "succeed after maximum retries",
 			failureAttempts: 3,
-			totalAttempts:  4, // 1 initial + 3 retries
+			totalAttempts:   4, // 1 initial + 3 retries
 			expectedRetries: 3,
 			shouldSucceed:   true,
 		},
@@ -57,21 +57,21 @@ func TestWebhookPostProcessor_RetryMechanism(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var attemptCount int32
-			
+
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				attempt := atomic.AddInt32(&attemptCount, 1)
-				
+
 				// Add response delay if specified
 				if tt.responseDelay > 0 {
 					time.Sleep(tt.responseDelay)
 				}
-				
+
 				if int(attempt) <= tt.failureAttempts {
 					w.WriteHeader(http.StatusInternalServerError)
 					w.Write([]byte("Server error"))
 					return
 				}
-				
+
 				// Success response
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string]string{
@@ -79,16 +79,16 @@ func TestWebhookPostProcessor_RetryMechanism(t *testing.T) {
 				})
 			}))
 			defer server.Close()
-			
+
 			processor := config.NewWebhookPostProcessorWithConfig(server.URL, 5, 3, 1)
-			
+
 			message := &config.NtfyMessage{
 				Title:   "Test",
 				Message: "Retry test",
 			}
-			
+
 			result, err := processor.Process(message)
-			
+
 			if tt.shouldSucceed {
 				if err != nil {
 					t.Errorf("Expected success but got error: %v", err)
@@ -104,7 +104,7 @@ func TestWebhookPostProcessor_RetryMechanism(t *testing.T) {
 					t.Errorf("Expected retry failure message, got: %v", err)
 				}
 			}
-			
+
 			if int(attemptCount) != tt.totalAttempts {
 				t.Errorf("Expected %d total attempts, got %d", tt.totalAttempts, attemptCount)
 			}
@@ -146,30 +146,30 @@ func TestWebhookPostProcessor_ResponseSizeLimits(t *testing.T) {
 				// Generate response of specified size
 				responseSize := tt.responseSizeMB * 1024 * 1024
 				largeResponse := strings.Repeat("a", responseSize)
-				
+
 				w.Header().Set("Content-Type", "text/plain")
 				w.Write([]byte(largeResponse))
 			}))
 			defer server.Close()
-			
+
 			processor := config.NewWebhookPostProcessorWithConfig(server.URL, 5, 0, tt.maxResponseSizeMB)
-			
+
 			message := &config.NtfyMessage{
 				Title:   "Test",
 				Message: "Size test",
 			}
-			
+
 			result, err := processor.Process(message)
-			
+
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
-			
+
 			if result == nil {
 				t.Error("Expected result but got nil")
 				return
 			}
-			
+
 			expectedMaxSize := tt.maxResponseSizeMB * 1024 * 1024
 			if tt.shouldTruncate {
 				if len(result.Text) != expectedMaxSize {
@@ -216,18 +216,18 @@ func TestWebhookPostProcessor_TimeoutHandling(t *testing.T) {
 				})
 			}))
 			defer server.Close()
-			
+
 			processor := config.NewWebhookPostProcessorWithConfig(server.URL, tt.timeoutSeconds, 0, 1)
-			
+
 			message := &config.NtfyMessage{
 				Title:   "Test",
 				Message: "Timeout test",
 			}
-			
+
 			start := time.Now()
 			result, err := processor.Process(message)
 			duration := time.Since(start)
-			
+
 			if tt.shouldTimeout {
 				if err == nil {
 					t.Error("Expected timeout error but got success")
@@ -252,38 +252,38 @@ func TestWebhookPostProcessor_TimeoutHandling(t *testing.T) {
 // TestWebhookPostProcessor_ErrorStatusCodes tests different HTTP status code handling
 func TestWebhookPostProcessor_ErrorStatusCodes(t *testing.T) {
 	tests := []struct {
-		name           string
-		statusCode     int
-		shouldRetry    bool
-		maxRetries     int
+		name             string
+		statusCode       int
+		shouldRetry      bool
+		maxRetries       int
 		expectedAttempts int
 	}{
 		{
-			name:           "client error 400 - no retry",
-			statusCode:     400,
-			shouldRetry:    false,
-			maxRetries:     3,
+			name:             "client error 400 - no retry",
+			statusCode:       400,
+			shouldRetry:      false,
+			maxRetries:       3,
 			expectedAttempts: 1,
 		},
 		{
-			name:           "client error 404 - no retry",
-			statusCode:     404,
-			shouldRetry:    false,
-			maxRetries:     3,
+			name:             "client error 404 - no retry",
+			statusCode:       404,
+			shouldRetry:      false,
+			maxRetries:       3,
 			expectedAttempts: 1,
 		},
 		{
-			name:           "server error 500 - retry",
-			statusCode:     500,
-			shouldRetry:    true,
-			maxRetries:     2,
+			name:             "server error 500 - retry",
+			statusCode:       500,
+			shouldRetry:      true,
+			maxRetries:       2,
 			expectedAttempts: 3, // 1 initial + 2 retries
 		},
 		{
-			name:           "server error 503 - retry",
-			statusCode:     503,
-			shouldRetry:    true,
-			maxRetries:     1,
+			name:             "server error 503 - retry",
+			statusCode:       503,
+			shouldRetry:      true,
+			maxRetries:       1,
 			expectedAttempts: 2, // 1 initial + 1 retry
 		},
 	}
@@ -291,36 +291,36 @@ func TestWebhookPostProcessor_ErrorStatusCodes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var attemptCount int32
-			
+
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				atomic.AddInt32(&attemptCount, 1)
 				w.WriteHeader(tt.statusCode)
 				w.Write([]byte(fmt.Sprintf("Error %d", tt.statusCode)))
 			}))
 			defer server.Close()
-			
+
 			processor := config.NewWebhookPostProcessorWithConfig(server.URL, 5, tt.maxRetries, 1)
-			
+
 			message := &config.NtfyMessage{
 				Title:   "Test",
 				Message: "Status code test",
 			}
-			
+
 			result, err := processor.Process(message)
-			
+
 			// Should always fail
 			if err == nil {
 				t.Error("Expected error but got success")
 			}
-			
+
 			if result != nil {
 				t.Error("Expected nil result on error")
 			}
-			
+
 			if int(attemptCount) != tt.expectedAttempts {
 				t.Errorf("Expected %d attempts, got %d", tt.expectedAttempts, attemptCount)
 			}
-			
+
 			if !strings.Contains(err.Error(), fmt.Sprintf("status %d", tt.statusCode)) {
 				t.Errorf("Expected error to mention status code %d, got: %v", tt.statusCode, err)
 			}
@@ -379,7 +379,7 @@ func TestMustachePostProcessor_TemplateValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			processor, err := config.NewMustachePostProcessor(tt.template)
-			
+
 			if tt.shouldSucceed {
 				if err != nil {
 					t.Errorf("Expected success but got error: %v", err)
@@ -404,13 +404,13 @@ func TestMustachePostProcessor_TemplateFileValidation(t *testing.T) {
 	// Create temporary files for testing
 	validTemplate := "🚨 {{.Title}}\n📄 {{.Message}}"
 	invalidTemplate := "{{.Title"
-	
+
 	validFile := createTempFile(t, "valid-*.tmpl", validTemplate)
 	defer os.Remove(validFile)
-	
+
 	invalidFile := createTempFile(t, "invalid-*.tmpl", invalidTemplate)
 	defer os.Remove(invalidFile)
-	
+
 	tests := []struct {
 		name          string
 		filePath      string
@@ -439,7 +439,7 @@ func TestMustachePostProcessor_TemplateFileValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			processor, err := config.NewMustachePostProcessorFromFile(tt.filePath)
-			
+
 			if tt.shouldSucceed {
 				if err != nil {
 					t.Errorf("Expected success but got error: %v", err)
@@ -506,25 +506,25 @@ func TestWebhookPostProcessor_MalformedResponse(t *testing.T) {
 				w.Write([]byte(tt.response))
 			}))
 			defer server.Close()
-			
+
 			processor := config.NewWebhookPostProcessorWithConfig(server.URL, 5, 0, 1)
-			
+
 			message := &config.NtfyMessage{
 				Title:   "Test",
 				Message: "Response test",
 			}
-			
+
 			result, err := processor.Process(message)
-			
+
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}
-			
+
 			if result == nil {
 				t.Error("Expected result but got nil")
 				return
 			}
-			
+
 			if result.Text != tt.expectedText {
 				t.Errorf("Expected text %q, got %q", tt.expectedText, result.Text)
 			}
@@ -538,13 +538,13 @@ func createTempFile(t *testing.T, pattern, content string) string {
 	if err != nil {
 		t.Fatalf("Failed to create temp file: %v", err)
 	}
-	
+
 	if _, err := tmpFile.WriteString(content); err != nil {
 		tmpFile.Close()
 		os.Remove(tmpFile.Name())
 		t.Fatalf("Failed to write to temp file: %v", err)
 	}
-	
+
 	tmpFile.Close()
 	return tmpFile.Name()
 }
@@ -552,25 +552,25 @@ func createTempFile(t *testing.T, pattern, content string) string {
 // TestWebhookPostProcessor_ConcurrentRequests tests concurrent webhook processing
 func TestWebhookPostProcessor_ConcurrentRequests(t *testing.T) {
 	var requestCount int32
-	
+
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		count := atomic.AddInt32(&requestCount, 1)
-		
+
 		// Add small delay to simulate processing
 		time.Sleep(10 * time.Millisecond)
-		
+
 		json.NewEncoder(w).Encode(map[string]string{
 			"text": fmt.Sprintf("Response %d", count),
 		})
 	}))
 	defer server.Close()
-	
+
 	processor := config.NewWebhookPostProcessorWithConfig(server.URL, 5, 0, 1)
-	
+
 	const concurrency = 10
 	results := make(chan *config.SlackMessage, concurrency)
 	errors := make(chan error, concurrency)
-	
+
 	// Launch concurrent requests
 	for i := 0; i < concurrency; i++ {
 		go func(id int) {
@@ -578,7 +578,7 @@ func TestWebhookPostProcessor_ConcurrentRequests(t *testing.T) {
 				Title:   fmt.Sprintf("Test %d", id),
 				Message: "Concurrent test",
 			}
-			
+
 			result, err := processor.Process(message)
 			if err != nil {
 				errors <- err
@@ -587,7 +587,7 @@ func TestWebhookPostProcessor_ConcurrentRequests(t *testing.T) {
 			}
 		}(i)
 	}
-	
+
 	// Collect results
 	var successCount, errorCount int
 	for i := 0; i < concurrency; i++ {
@@ -601,15 +601,15 @@ func TestWebhookPostProcessor_ConcurrentRequests(t *testing.T) {
 			t.Fatal("Timeout waiting for concurrent requests")
 		}
 	}
-	
+
 	if successCount != concurrency {
 		t.Errorf("Expected %d successful requests, got %d", concurrency, successCount)
 	}
-	
+
 	if errorCount > 0 {
 		t.Errorf("Expected 0 errors, got %d", errorCount)
 	}
-	
+
 	if int(requestCount) != concurrency {
 		t.Errorf("Expected %d server requests, got %d", concurrency, requestCount)
 	}

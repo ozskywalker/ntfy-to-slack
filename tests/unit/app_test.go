@@ -6,7 +6,6 @@ import (
 	"github.com/ozskywalker/ntfy-to-slack/internal/app"
 )
 
-
 func TestNewApp(t *testing.T) {
 	config := &MockConfigProvider{
 		Domain:     "test.ntfy.sh",
@@ -14,15 +13,15 @@ func TestNewApp(t *testing.T) {
 		Auth:       "auth-token",
 		WebhookURL: "https://hooks.slack.com/test",
 	}
-	
+
 	appInstance := app.New(config, "test-version")
-	
+
 	if appInstance == nil {
 		t.Error("app.New() returned nil")
 	}
-	
+
 	// Note: config field is not exported, so we can't test it directly
-	
+
 	// Note: internal fields are not exported, so we can't test them directly
 	// The fact that New() doesn't panic is sufficient for this test
 }
@@ -50,7 +49,7 @@ func TestSetupLogging(t *testing.T) {
 					t.Errorf("setupLogging() panicked: %v", r)
 				}
 			}()
-			
+
 			// setupLogging is not exported, skip this test
 			t.Skip("setupLogging is not exported")
 		})
@@ -64,7 +63,7 @@ func TestPrintHelp(t *testing.T) {
 			t.Errorf("printHelp() panicked: %v", r)
 		}
 	}()
-	
+
 	// printHelp is not exported, we can test the exported method instead
 	config := &MockConfigProvider{}
 	appInstance := app.New(config, "test-version")

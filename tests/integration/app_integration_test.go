@@ -31,18 +31,18 @@ func (m *MockConfigProvider) GetPostProcessTemplateFile() string { return m.Post
 func (m *MockConfigProvider) GetWebhookTimeoutSeconds() int      { return m.WebhookTimeoutSeconds }
 func (m *MockConfigProvider) GetWebhookRetries() int             { return m.WebhookRetries }
 func (m *MockConfigProvider) GetWebhookMaxResponseSizeMB() int   { return m.WebhookMaxResponseSizeMB }
-func (m *MockConfigProvider) Validate() error                   { return nil }
+func (m *MockConfigProvider) Validate() error                    { return nil }
 
 // TestApp_ConfigurationValidation tests app creation with various configurations
 func TestApp_ConfigurationValidation(t *testing.T) {
 	tests := []struct {
-		name           string
-		domain         string
-		topic          string
-		slackURL       string
-		postWebhook    string
-		template       string
-		expectPanic    bool
+		name        string
+		domain      string
+		topic       string
+		slackURL    string
+		postWebhook string
+		template    string
+		expectPanic bool
 	}{
 		{
 			name:     "valid basic configuration",
@@ -279,10 +279,10 @@ func TestApp_PostProcessorIntegration(t *testing.T) {
 // TestApp_ConnectionResilience tests app behavior with connection failures
 func TestApp_ConnectionResilience(t *testing.T) {
 	tests := []struct {
-		name          string
-		domain        string
-		expectRetry   bool
-		maxWaitTime   time.Duration
+		name        string
+		domain      string
+		expectRetry bool
+		maxWaitTime time.Duration
 	}{
 		{
 			name:        "connection to nonexistent domain",
@@ -347,13 +347,13 @@ func TestApp_ConnectionResilience(t *testing.T) {
 // TestApp_IntegrationScenarios tests realistic app configuration scenarios
 func TestApp_IntegrationScenarios(t *testing.T) {
 	tests := []struct {
-		name         string
-		domain       string
-		topic        string
-		slackURL     string
-		webhook      string
-		template     string
-		expectSetup  bool
+		name        string
+		domain      string
+		topic       string
+		slackURL    string
+		webhook     string
+		template    string
+		expectSetup bool
 	}{
 		{
 			name:        "basic production setup",

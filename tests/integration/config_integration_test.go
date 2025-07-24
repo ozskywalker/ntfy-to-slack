@@ -3,9 +3,9 @@ package integration
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
-	"path/filepath"
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
 )
@@ -14,12 +14,12 @@ import (
 // This is a proper integration test that creates real configurations and validates them
 func TestConfig_PostProcessorValidation(t *testing.T) {
 	tests := []struct {
-		name            string
-		args            []string
-		env             map[string]string
-		shouldError     bool
-		errorContains   string
-		description     string
+		name          string
+		args          []string
+		env           map[string]string
+		shouldError   bool
+		errorContains string
+		description   string
 	}{
 		{
 			name: "no post-processor configured",
@@ -217,13 +217,13 @@ func TestConfig_PostProcessorValidation(t *testing.T) {
 // This verifies that the public API correctly exposes configuration values
 func TestConfig_PostProcessorGetters(t *testing.T) {
 	tests := []struct {
-		name                    string
-		args                    []string
-		env                     map[string]string
-		expectedWebhook         string
-		expectedTemplate        string
-		expectedTemplateFile    string
-		description             string
+		name                 string
+		args                 []string
+		env                  map[string]string
+		expectedWebhook      string
+		expectedTemplate     string
+		expectedTemplateFile string
+		description          string
 	}{
 		{
 			name: "webhook configuration via flags",
@@ -390,12 +390,12 @@ func TestConfig_TemplateFileIntegration(t *testing.T) {
 	_ = filepath.Join(tempDir, "non-existent.tmpl")
 
 	tests := []struct {
-		name              string
-		templateFilePath  string
-		shouldError       bool
-		errorContains     string
-		expectedPath      string
-		description       string
+		name             string
+		templateFilePath string
+		shouldError      bool
+		errorContains    string
+		expectedPath     string
+		description      string
 	}{
 		{
 			name:             "valid template file via flags",
@@ -509,16 +509,16 @@ func TestConfig_TemplateFileIntegration(t *testing.T) {
 // This tests realistic webhook configuration setups with all related parameters
 func TestConfig_WebhookConfigurationIntegration(t *testing.T) {
 	tests := []struct {
-		name                     string
-		args                     []string
-		env                      map[string]string
-		expectedWebhook          string
-		expectedTimeout          int
-		expectedRetries          int
-		expectedMaxResponseSize  int
-		shouldError              bool
-		errorContains            string
-		description              string
+		name                    string
+		args                    []string
+		env                     map[string]string
+		expectedWebhook         string
+		expectedTimeout         int
+		expectedRetries         int
+		expectedMaxResponseSize int
+		shouldError             bool
+		errorContains           string
+		description             string
 	}{
 		{
 			name: "webhook with default configuration via flags",
@@ -528,9 +528,9 @@ func TestConfig_WebhookConfigurationIntegration(t *testing.T) {
 				"--post-process-webhook", "https://api.example.com/process",
 			},
 			expectedWebhook:         "https://api.example.com/process",
-			expectedTimeout:         30,  // default
-			expectedRetries:         3,   // default
-			expectedMaxResponseSize: 1,   // default
+			expectedTimeout:         30, // default
+			expectedRetries:         3,  // default
+			expectedMaxResponseSize: 1,  // default
 			shouldError:             false,
 			description:             "Should use default values for webhook parameters",
 		},
@@ -558,10 +558,10 @@ func TestConfig_WebhookConfigurationIntegration(t *testing.T) {
 				"--slack-webhook", "https://hooks.slack.com/services/test",
 			},
 			env: map[string]string{
-				"POST_PROCESS_WEBHOOK":             "https://env.example.com/process",
-				"WEBHOOK_TIMEOUT_SECONDS":          "45",
-				"WEBHOOK_RETRIES":                  "2",
-				"WEBHOOK_MAX_RESPONSE_SIZE_MB":     "5",
+				"POST_PROCESS_WEBHOOK":         "https://env.example.com/process",
+				"WEBHOOK_TIMEOUT_SECONDS":      "45",
+				"WEBHOOK_RETRIES":              "2",
+				"WEBHOOK_MAX_RESPONSE_SIZE_MB": "5",
 			},
 			expectedWebhook:         "https://env.example.com/process",
 			expectedTimeout:         45,
@@ -777,13 +777,13 @@ func TestConfig_CompleteConfigurationScenarios(t *testing.T) {
 			name: "development configuration via environment",
 			args: []string{},
 			env: map[string]string{
-				"NTFY_DOMAIN":                      "dev.ntfy.sh",
-				"NTFY_TOPIC":                       "dev-testing",
-				"SLACK_WEBHOOK_URL":                "https://hooks.slack.com/services/DEV/DEV/DEVTOKENXXXXXXXXXXXXXXX",
-				"POST_PROCESS_TEMPLATE":            "🔧 DEV: {{.Title}} - {{.Message}}",
-				"WEBHOOK_TIMEOUT_SECONDS":          "10",
-				"WEBHOOK_RETRIES":                  "1",
-				"WEBHOOK_MAX_RESPONSE_SIZE_MB":     "1",
+				"NTFY_DOMAIN":                  "dev.ntfy.sh",
+				"NTFY_TOPIC":                   "dev-testing",
+				"SLACK_WEBHOOK_URL":            "https://hooks.slack.com/services/DEV/DEV/DEVTOKENXXXXXXXXXXXXXXX",
+				"POST_PROCESS_TEMPLATE":        "🔧 DEV: {{.Title}} - {{.Message}}",
+				"WEBHOOK_TIMEOUT_SECONDS":      "10",
+				"WEBHOOK_RETRIES":              "1",
+				"WEBHOOK_MAX_RESPONSE_SIZE_MB": "1",
 			},
 			shouldError: false,
 			description: "Should handle development configuration via environment",
@@ -807,11 +807,11 @@ func TestConfig_CompleteConfigurationScenarios(t *testing.T) {
 				"--webhook-timeout", "90", // flag overrides env
 			},
 			env: map[string]string{
-				"NTFY_DOMAIN":                  "env.ntfy.sh", // env
+				"NTFY_DOMAIN":                  "env.ntfy.sh",                 // env
 				"POST_PROCESS_WEBHOOK":         "https://env.api.com/process", // env
-				"WEBHOOK_TIMEOUT_SECONDS":      "120", // env (overridden by flag)
-				"WEBHOOK_RETRIES":              "7", // env
-				"WEBHOOK_MAX_RESPONSE_SIZE_MB": "25", // env
+				"WEBHOOK_TIMEOUT_SECONDS":      "120",                         // env (overridden by flag)
+				"WEBHOOK_RETRIES":              "7",                           // env
+				"WEBHOOK_MAX_RESPONSE_SIZE_MB": "25",                          // env
 			},
 			shouldError: false,
 			description: "Should handle mixed configuration sources with proper precedence",

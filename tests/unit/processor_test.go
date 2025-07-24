@@ -9,15 +9,14 @@ import (
 	"github.com/ozskywalker/ntfy-to-slack/internal/processor"
 )
 
-
 func TestNewMessageProcessor(t *testing.T) {
 	sender := &MockMessageSender{}
 	processor := processor.New(sender)
-	
+
 	if processor == nil {
 		t.Error("processor.New() returned nil")
 	}
-	
+
 	// Note: internal fields are not exported, so we can't test them directly
 	// The fact that processor.New() doesn't panic and returns a non-nil processor is sufficient
 }
@@ -83,18 +82,18 @@ func TestMessageProcessor_ProcessStream(t *testing.T) {
 				SendError: tt.senderError,
 			}
 			processor := processor.New(sender)
-			
+
 			reader := strings.NewReader(tt.input)
 			err := processor.ProcessStream(reader)
-			
+
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProcessStream() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			
+
 			if len(sender.SentMessages) != len(tt.expectedMessages) {
 				t.Errorf("Expected %d messages, got %d", len(tt.expectedMessages), len(sender.SentMessages))
 			}
-			
+
 			for i, expected := range tt.expectedMessages {
 				if i >= len(sender.SentMessages) {
 					t.Errorf("Missing expected message: %v", expected)
