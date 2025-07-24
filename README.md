@@ -45,7 +45,7 @@ git clone https://github.com/ozskywalker/ntfy-to-slack
 cd ntfy-to-slack
 
 # Build the binary
-go build .
+go build -v ./cmd/ntfy-to-slack
 
 # Run with command line flags
 ./ntfy-to-slack --ntfy-topic=your-topic --slack-webhook=https://hooks.slack.com/your-webhook
