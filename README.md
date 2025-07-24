@@ -6,6 +6,16 @@ Meant to run from a container you can set & forget.
 
 [![Go Version](https://img.shields.io/badge/Go-1.24.4-blue.svg)](https://golang.org/doc/devel/release.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![Claude Used](https://img.shields.io/badge/Claude-Used-4B5AEA)
+
+## Version 2 is here!
+
+**Introducing Post-processing support:** Transform messages with a Mustache template, or call an external service via Webhook (like N8N), before passing the transformed result to Slack.
+
+QoL changes:
+ - **Improved error handling and resilience:** Implemented robust error recovery, automatic reconnection with 30-second intervals, graceful handling of network failures, and continued processing despite individual message errors
+ - **Enhanced structured logging with configurable levels:** Added contextual logging with relevant metadata (domains, topics, error details) and configurable log levels (debug/info/warn/error) for better debugging and monitoring
+ - **Refactoring:** Moved away from monolithic code into clean, modular components with a interface-driven design for improved testability and maintainability
 
 ## Installation
 
@@ -41,6 +51,25 @@ go build .
 ./ntfy-to-slack --ntfy-topic=your-topic --slack-webhook=https://hooks.slack.com/your-webhook
 ```
 
+### Post-Processing Examples
+
+For more details on Mustache templates, check out [the Mustache playground & documentation.](https://jgonggrijp.gitlab.io/wontache/playground.html)
+
+**In-line template formatting:**
+```bash
+./ntfy-to-slack --ntfy-topic alerts --slack-webhook https://hooks.slack.com/... --post-process-template "🚨 **{{.Title}}** Alert\n📄{{.Message}}\n⏰ Time: {{.Time}}"
+```
+
+**Webhook integration with N8N:**
+```bash
+./ntfy-to-slack --ntfy-topic monitoring --slack-webhook https://hooks.slack.com/... --post-process-webhook https://n8n.yourcompany.com/webhook/ntfy-processor
+```
+
+**Template file for complex formatting:**
+```bash
+./ntfy-to-slack --ntfy-topic alerts --slack-webhook https://hooks.slack.com/... --post-process-template-file /path/to/alert-template.tmpl
+```
+
 ## Configuration
 
 ntfy-to-slack can be configured using either environment variables or command-line flags:
@@ -51,9 +80,112 @@ ntfy-to-slack can be configured using either environment variables or command-li
 | `NTFY_TOPIC`         | `--ntfy-topic`   | ntfy topic to subscribe to        | -        | Yes      |
 | `NTFY_AUTH`          | `--ntfy-auth`    | Authentication token for reserved topics | - | No       |
 | `SLACK_WEBHOOK_URL`  | `--slack-webhook`| Slack webhook URL                 | -        | Yes      |
+| `POST_PROCESS_WEBHOOK` | `--post-process-webhook` | Webhook URL for post-processing | - | No |
+| `POST_PROCESS_TEMPLATE_FILE` | `--post-process-template-file` | Template file path for post-processing | - | No |
+| `POST_PROCESS_TEMPLATE` | `--post-process-template` | Inline template for post-processing | - | No |
+| `WEBHOOK_TIMEOUT_SECONDS` | `--webhook-timeout` | Webhook timeout in seconds (1-300) | 30 | No |
+| `WEBHOOK_RETRIES` | `--webhook-retries` | Number of webhook retries (0-10) | 3 | No |
+| `WEBHOOK_MAX_RESPONSE_SIZE_MB` | `--webhook-max-response-size` | Max webhook response size in MB (1-100) | 1 | No |
 | `LOG_LEVEL`          | -                | Log level (debug/info/warn/error) | info     | No       |
 
 Command-line flags take precedence over environment variables.
+
+**Note**: Only one post-processing option can be specified at a time. Webhook configuration options (`WEBHOOK_TIMEOUT_SECONDS`, `WEBHOOK_RETRIES`, `WEBHOOK_MAX_RESPONSE_SIZE_MB`) only apply to webhook post-processing, and not the Slack webhook.
+
+### Configuration Examples
+
+**Basic usage:**
+```bash
+./ntfy-to-slack --ntfy-topic alerts --slack-webhook https://hooks.slack.com/...
+```
+
+**With in-line template formatting:**
+```bash
+./ntfy-to-slack --ntfy-topic alerts --slack-webhook https://hooks.slack.com/... \
+  --post-process-template "🚨 **{{.Title}}** Alert\n📄 {{.Message}}\n⏰ Time: {{.Time}}"
+```
+
+**With template file for complex formatting:**
+```bash
+./ntfy-to-slack --ntfy-topic alerts --slack-webhook https://hooks.slack.com/... \
+  --post-process-template-file /path/to/alert-template.tmpl
+```
+
+**With webhook integration:**
+```bash
+./ntfy-to-slack --ntfy-topic monitoring --slack-webhook https://hooks.slack.com/... \
+  --post-process-webhook https://n8n.yourcompany.com/webhook/ntfy-processor
+```
+
+# Development
+
+## Architecture
+
+```
+├── cmd/
+│   └── ntfy-to-slack/
+│       └── main.go               # Main entry point
+├── internal/                     # Internal packages (not importable externally)
+│   ├── app/
+│   │   └── app.go                # Application orchestration
+│   ├── config/
+│   │   ├── config.go             # Configuration management
+│   │   └── postprocessor.go      # Post-processing (templates & webhooks)
+│   ├── ntfy/
+│   │   └── ntfy.go               # Ntfy client
+│   ├── processor/
+│   │   ├── processor.go          # Message processing
+│   │   └── interfaces.go         # Clean interface definitions
+│   └── slack/
+│       └── slack.go              # Slack integration
+├── tests/
+│   ├── unit/                     # Unit tests
+│   │   └── *_test.go             # Component-specific unit tests
+│   └── integration/              # Integration tests
+│       └── *_test.go             # End-to-end integration tests
+├── Makefile                      # Test automation
+└── .github/workflows/            # CI/CD pipeline
+```
+
+## Testing
+
+This project includes a comprehensive test suite covering unit tests, integration tests, and HTTP interactions.
+
+### Running Tests
+
+```bash
+# Run all tests
+go test -v ./tests/...
+
+# Run tests with coverage
+go test -v -coverprofile=coverage.out ./tests/...
+go tool cover -html=coverage.out -o coverage.html
+
+# Run only unit tests
+go test -v ./tests/unit/...
+
+# Run only integration tests
+go test -v ./tests/integration/...
+```
+
+### Using Make (if available)
+
+```bash
+# Run all tests
+make test
+
+# Run tests with coverage report
+make test-coverage
+
+# Run only unit tests
+make test-unit
+
+# Run only integration tests
+make test-integration
+
+# Run full build pipeline
+make all
+```
 
 ## Troubleshooting
 

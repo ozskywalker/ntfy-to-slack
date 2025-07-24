@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(go test:*)",
+      "Bash(go tool cover:*)",
+      "Bash(go:*)",
+      "Bash(.ntfy-to-slack.exe:*)",
+      "Bash(./ntfy-to-slack.exe --help)",
+      "Bash(./ntfy-to-slack.exe)",
+      "Bash(./ntfy-to-slack.exe -v)",
+      "Bash(./ntfy-to-slack.exe --ntfy-topic test --slack-webhook https://hooks.slack.com/test --post-process-webhook https://example.com/webhook --post-process-template \"{{.Title}}: {{.Message}}\")",
+      "Bash(./ntfy-to-slack.exe --ntfy-topic test --slack-webhook https://hooks.slack.com/test --post-process-template-file ./test-template.tmpl)",
+      "Bash(mv:*)",
+      "Bash(ls:*)",
+      "Bash(make test:*)"
+    ],
+    "deny": []
+  }
+}
