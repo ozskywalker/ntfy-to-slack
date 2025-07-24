@@ -1,4 +1,4 @@
-FROM golang:1.24.2-alpine3.21 AS build-env
+FROM golang:1.24.4-alpine3.21 AS build-env
 ADD . /src
 WORKDIR /src
 RUN go build -o /src/ntfy-to-slack || (echo "Build failed" && exit 1)
