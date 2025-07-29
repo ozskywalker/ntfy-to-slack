@@ -8,6 +8,13 @@ Meant to run from a container you can set & forget.
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Claude Used](https://img.shields.io/badge/Claude-Used-4B5AEA)
 
+## CI/CD Status
+
+[![Tests - Main](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/test.yml)
+[![Tests - Develop](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/test.yml)
+[![Coverage - Main](https://codecov.io/gh/ozskywalker/ntfy-to-slack/branch/main/graph/badge.svg)](https://codecov.io/gh/ozskywalker/ntfy-to-slack)
+[![Coverage - Develop](https://codecov.io/gh/ozskywalker/ntfy-to-slack/branch/develop/graph/badge.svg)](https://codecov.io/gh/ozskywalker/ntfy-to-slack)
+
 ## Version 2 is here!
 
 **Introducing Post-processing support:** Transform messages with a Mustache template, or call an external service via Webhook (like N8N), before passing the transformed result to Slack.
