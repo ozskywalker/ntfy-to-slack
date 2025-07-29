@@ -54,11 +54,9 @@ jobs:
       run: go test -v -race -coverprofile=coverage.out ./...
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
-        file: ./coverage.out
-        flags: unittests
-        name: codecov-umbrella
+        token: ${{ secrets.CODECOV_TOKEN }}
 
     - name: Generate coverage report
       run: go tool cover -html=coverage.out -o coverage.html
