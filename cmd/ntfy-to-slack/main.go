@@ -7,10 +7,7 @@ import (
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/app"
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
-)
-
-const (
-	version = "v2.0 2025-07-23"
+	"github.com/ozskywalker/ntfy-to-slack/internal/version"
 )
 
 func main() {
@@ -23,12 +20,12 @@ func main() {
 
 	// Handle version flag
 	if cfg.ShowVersion {
-		fmt.Println(version)
+		fmt.Println(version.Get().Detailed())
 		os.Exit(0)
 	}
 
 	// Create application
-	application := app.New(cfg, version)
+	application := app.New(cfg, version.Get().String())
 
 	// Handle help flag
 	if cfg.ShowHelp {

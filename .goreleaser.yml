@@ -1,0 +1,128 @@
+version: 1
+
+before:
+  hooks:
+    - go mod tidy
+    - go fmt ./...
+    - go vet ./...
+    - go test ./...
+
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X '{{ .ModulePath }}/internal/version.Version={{.Version}}'
+      - -X '{{ .ModulePath }}/internal/version.GitCommit={{.FullCommit}}'
+      - -X '{{ .ModulePath }}/internal/version.BuildDate={{.Date}}'
+      - -X '{{ .ModulePath }}/internal/version.GitTag={{.Tag}}'
+    binary: '{{ .ProjectName }}'
+    main: ./cmd/ntfy-to-slack
+
+archives:
+  - format: tar.gz
+    format_overrides:
+      - goos: windows
+        format: zip
+    name_template: >-
+      {{ .ProjectName }}-
+      {{- title .Os }}-
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    files:
+      - README.md
+      - LICENSE*
+      - VERSION_BUILD.md
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^build:'
+      - '^ci:'
+      - '^refactor:'
+      - '^style:'
+      - merge conflict
+      - Merge pull request
+      - Merge remote-tracking branch
+      - Merge branch
+  groups:
+    - title: Features
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: Bug fixes
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: Security
+      regexp: '^.*?sec(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: Performance
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 3
+    - title: Others
+      order: 999
+
+release:
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## {{ .ProjectName }} {{ .Tag }}
+    
+    🚀 **Release Highlights**
+    
+    This release includes cross-platform binaries for Windows, Linux, and macOS.
+    
+    ### 📦 **Installation**
+    
+    Download the appropriate binary for your platform from the assets below.
+    
+    ### ✅ **Verification**
+    
+    All binaries are signed and checksummed. Verify your download with:
+    ```bash
+    # Check version
+    ./{{ .ProjectName }} --version
+    
+    # Verify checksum (example for Linux)
+    sha256sum -c checksums.txt --ignore-missing
+    ```
+    
+  footer: |
+    ---
+    
+    **🔧 Build Info**:
+    - Go Version: {{ .Env.GOVERSION }}
+    - Built: {{ .Date }}
+    - Commit: {{ .ShortCommit }}
+
+signs:
+  - cmd: gpg
+    args:
+      - "--batch"
+      - "--local-user"
+      - "{{ .Env.GPG_FINGERPRINT }}"
+      - "--output"
+      - "${signature}"
+      - "--detach-sign"
+      - "${artifact}"
+    artifacts: checksum
+    output: true

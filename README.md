@@ -10,10 +10,10 @@ Meant to run from a container you can set & forget.
 
 ## CI/CD Status
 
-[![Tests - Main](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/test.yml)
-[![Tests - Develop](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/test.yml/badge.svg?branch=develop)](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/test.yml)
-[![Coverage - Main](https://codecov.io/gh/ozskywalker/ntfy-to-slack/branch/main/graph/badge.svg)](https://codecov.io/gh/ozskywalker/ntfy-to-slack)
-[![Coverage - Develop](https://codecov.io/gh/ozskywalker/ntfy-to-slack/branch/develop/graph/badge.svg)](https://codecov.io/gh/ozskywalker/ntfy-to-slack)
+[![CI](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/test.yml)
+[![Release](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/release.yml/badge.svg)](https://github.com/ozskywalker/ntfy-to-slack/actions/workflows/release.yml)
+[![Coverage](https://codecov.io/gh/ozskywalker/ntfy-to-slack/branch/main/graph/badge.svg)](https://codecov.io/gh/ozskywalker/ntfy-to-slack)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ozskywalker/ntfy-to-slack)](https://goreportcard.com/report/github.com/ozskywalker/ntfy-to-slack)
 
 ## Version 2 is here!
 
@@ -26,7 +26,24 @@ QoL changes:
 
 ## Installation
 
-### Using Docker (Recommended)
+### Pre-built Binaries (Recommended)
+
+Download the latest release from the [GitHub Releases page](https://github.com/ozskywalker/ntfy-to-slack/releases):
+
+```bash
+# Linux/macOS example
+curl -L https://github.com/ozskywalker/ntfy-to-slack/releases/latest/download/ntfy-to-slack-Linux-x86_64.tar.gz | tar xz
+chmod +x ntfy-to-slack
+
+# Windows (PowerShell)
+Invoke-WebRequest -Uri "https://github.com/ozskywalker/ntfy-to-slack/releases/latest/download/ntfy-to-slack-Windows-x86_64.zip" -OutFile "ntfy-to-slack.zip"
+Expand-Archive -Path "ntfy-to-slack.zip" -DestinationPath "."
+
+# Verify installation
+./ntfy-to-slack --version
+```
+
+### Using Docker
 
 ```bash
 # Clone this repo & build the container image
@@ -42,9 +59,9 @@ docker run --env="NTFY_DOMAIN=ntfy.sh" \
            ozskywalker/ntfy-to-slack:latest
 ```
 
-### Using CLI
+### Build from Source
 
-Will require golang to be pre-installed.
+Requires Go 1.24+ to be pre-installed.
 
 ```bash
 # Clone repository
@@ -193,6 +210,16 @@ make test-integration
 # Run full build pipeline
 make all
 ```
+
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on:
+
+- Using conventional commits for automated changelog generation
+- Development workflow and code guidelines  
+- Pull request process
+
+For major changes, please open an issue first to discuss what you would like to change.
 
 ## Troubleshooting
 
