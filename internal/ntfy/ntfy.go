@@ -73,7 +73,9 @@ func (n *HTTPClient) Connect() (io.ReadCloser, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		resp.Body.Close()
+		if closeErr := resp.Body.Close(); closeErr != nil {
+			slog.Debug("failed to close response body", "err", closeErr)
+		}
 		slog.Error("invalid status code", "expected", http.StatusOK, "domain", n.domain, "statusCode", resp.StatusCode)
 		return nil, fmt.Errorf("invalid response code from ntfy: %d", resp.StatusCode)
 	}
