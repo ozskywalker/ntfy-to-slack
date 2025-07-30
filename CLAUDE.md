@@ -44,6 +44,22 @@ According to the GoReleaser configuration in `.goreleaser.yml`, the following co
 - `refactor:` - Code refactoring (filtered out)
 - `style:` - Code style changes (filtered out)
 
+## File Formatting Guidelines
+
+### Line Endings
+**Always use LF (Unix-style) line endings, not CRLF (Windows-style)** for better compatibility with GitHub and the upstream repository.
+
+When creating or editing files:
+- Ensure all text files use LF line endings (`\n`) 
+- Git will show warnings like "CRLF will be replaced by LF" - this is expected and good
+- This maintains consistency across different operating systems
+- Prevents unnecessary line ending changes in diffs
+
+### File Creation Best Practices
+- Use consistent indentation (spaces preferred over tabs for most files)
+- Ensure files end with a single newline character
+- Keep consistent formatting within each file type
+
 ## Testing Commands
 
 When working on this project, always run tests using:
