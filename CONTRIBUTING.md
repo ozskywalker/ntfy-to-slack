@@ -16,16 +16,21 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) f
 
 ### Commit Types
 
+**Changelog-visible types (appear in releases):**
 - **`feat:`** - New features (appears in "Features" section)
 - **`fix:`** - Bug fixes (appears in "Bug fixes" section)  
 - **`sec:`** - Security-related changes (appears in "Security" section)
 - **`perf:`** - Performance improvements (appears in "Performance" section)
-- **`docs:`** - Documentation changes (filtered out of changelog)
-- **`test:`** - Test changes (filtered out of changelog)
-- **`build:`** - Build system changes (filtered out of changelog)
-- **`ci:`** - CI/CD changes (filtered out of changelog)
-- **`refactor:`** - Code refactoring (filtered out of changelog)
-- **`style:`** - Code style changes (filtered out of changelog)
+
+**Internal types (filtered out of changelog):**
+- **`docs:`** - Documentation changes
+- **`test:`** - Test changes
+- **`build:`** - Build system changes (CI/CD, workflows, linting, releases)
+- **`ci:`** - CI/CD changes (synonym for `build:`)
+- **`refactor:`** - Code refactoring
+- **`style:`** - Code style changes
+
+**Important:** Use `build:` for all CI/CD pipeline, GitHub Actions, GoReleaser, linting configuration, and build system changes to keep them out of user-facing changelogs.
 
 ### Examples
 
@@ -36,6 +41,9 @@ fix: resolve memory leak in data processing
 sec: validate input parameters to prevent injection
 perf: optimize database query performance
 docs: update API documentation
+build: add security scanning to CI pipeline
+build: configure cross-platform releases
+build: update golangci-lint configuration
 ```
 
 ### Breaking Changes
