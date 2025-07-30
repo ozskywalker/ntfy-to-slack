@@ -2,6 +2,8 @@
     "makefile.configureOnOpen": false,
     "files.eol": "\n",
     "[go]": {
-        "files.eol": "\n"
+        "files.eol": "\n",
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "golang.go"
     }
 }

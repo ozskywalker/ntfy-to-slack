@@ -110,7 +110,6 @@ func (a *App) runOnce() error {
 	return a.processor.ProcessStream(reader)
 }
 
-
 // PrintHelp prints the application help message
 func (a *App) PrintHelp() {
 	fmt.Println("ntfy-to-slack", a.version)
