@@ -120,7 +120,7 @@ func (c *Config) Validate() error {
 	}
 
 	if c.SlackWebhookURL == "" {
-		return fmt.Errorf("Slack webhook URL is required")
+		return fmt.Errorf("slack webhook URL is required")
 	}
 
 	// Validate domain

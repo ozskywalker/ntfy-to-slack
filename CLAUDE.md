@@ -67,6 +67,20 @@ When working on this project, always run tests using:
 go test -v ./tests/...
 ```
 
+## Linting and Code Quality
+
+**IMPORTANT:** Always run linting locally before committing to match CI behavior:
+
+```bash
+# Run the same linting configuration as CI
+golangci-lint run --disable=errcheck --enable=govet,ineffassign,staticcheck --timeout=5m
+
+# Alternative: Run with default linters (more strict)
+golangci-lint run --timeout=5m
+```
+
+The CI pipeline uses a specific linter configuration. Make sure to test locally with the exact same flags to avoid CI failures.
+
 ## Build and Version Commands
 
 To test the application:
@@ -79,3 +93,12 @@ To test releases locally:
 ```bash
 goreleaser build --single-target --snapshot --clean
 ```
+
+## Complete Local Development Checklist
+
+Before committing changes:
+1. **Run tests**: `go test -v ./tests/...`
+2. **Run linting**: `golangci-lint run --disable=errcheck --enable=govet,ineffassign,staticcheck --timeout=5m`
+3. **Build application**: `go build -v ./cmd/ntfy-to-slack`
+4. **Test version system**: `./ntfy-to-slack -v`
+5. **Check formatting**: `go fmt ./...`

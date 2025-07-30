@@ -110,21 +110,6 @@ func (a *App) runOnce() error {
 	return a.processor.ProcessStream(reader)
 }
 
-// setupLogging configures the application logging
-func setupLogging(logLevel string) {
-	var level slog.Level
-	switch logLevel {
-	case "debug":
-		level = slog.LevelDebug
-	case "warn":
-		level = slog.LevelWarn
-	case "error":
-		level = slog.LevelError
-	default:
-		level = slog.LevelInfo
-	}
-	slog.SetLogLoggerLevel(level)
-}
 
 // PrintHelp prints the application help message
 func (a *App) PrintHelp() {

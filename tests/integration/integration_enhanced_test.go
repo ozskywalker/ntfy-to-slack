@@ -295,7 +295,7 @@ func TestWebhookPostProcessor_ErrorStatusCodes(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				atomic.AddInt32(&attemptCount, 1)
 				w.WriteHeader(tt.statusCode)
-				w.Write([]byte(fmt.Sprintf("Error %d", tt.statusCode)))
+				fmt.Fprintf(w, "Error %d", tt.statusCode)
 			}))
 			defer server.Close()
 

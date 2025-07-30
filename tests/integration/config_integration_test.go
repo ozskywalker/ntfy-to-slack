@@ -1,7 +1,6 @@
 package integration
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -364,7 +363,7 @@ func TestConfig_PostProcessorGetters(t *testing.T) {
 // This tests real file system operations for template file configuration
 func TestConfig_TemplateFileIntegration(t *testing.T) {
 	// Create temporary directory for test files
-	tempDir, err := ioutil.TempDir("", "ntfy-to-slack-config-test")
+	tempDir, err := os.MkdirTemp("", "ntfy-to-slack-config-test")
 	if err != nil {
 		t.Fatalf("Failed to create temp directory: %v", err)
 	}
@@ -373,7 +372,7 @@ func TestConfig_TemplateFileIntegration(t *testing.T) {
 	// Create valid template file
 	validTemplatePath := filepath.Join(tempDir, "valid-template.tmpl")
 	validTemplateContent := "🚨 Alert: {{.Title}}\n📄 Details: {{.Message}}\n🕐 Time: {{.Time}}"
-	err = ioutil.WriteFile(validTemplatePath, []byte(validTemplateContent), 0644)
+	err = os.WriteFile(validTemplatePath, []byte(validTemplateContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create valid template file: %v", err)
 	}
@@ -381,7 +380,7 @@ func TestConfig_TemplateFileIntegration(t *testing.T) {
 	// Create invalid template file (for future validation)
 	invalidTemplatePath := filepath.Join(tempDir, "invalid-template.tmpl")
 	invalidTemplateContent := "{{.Title"
-	err = ioutil.WriteFile(invalidTemplatePath, []byte(invalidTemplateContent), 0644)
+	err = os.WriteFile(invalidTemplatePath, []byte(invalidTemplateContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to create invalid template file: %v", err)
 	}
