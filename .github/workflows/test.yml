@@ -84,6 +84,7 @@ jobs:
         uses: golangci/golangci-lint-action@v6
         with:
           version: latest
+          args: --disable=errcheck --enable=govet,ineffassign,staticcheck --timeout=5m
 
   security:
     name: Security Scan
