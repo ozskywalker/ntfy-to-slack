@@ -81,7 +81,8 @@ changelog:
       order: 999
 
 release:
-  draft: false
+  draft: true
+  replace_existing_draft: true
   prerelease: auto
   mode: replace
   header: |
@@ -90,21 +91,6 @@ release:
     🚀 **Release Highlights**
     
     This release includes cross-platform binaries for Windows, Linux, and macOS.
-    
-    ### 📦 **Installation**
-    
-    Download the appropriate binary for your platform from the assets below.
-    
-    ### ✅ **Verification**
-    
-    All binaries are signed and checksummed. Verify your download with:
-    ```bash
-    # Check version
-    ./{{ .ProjectName }} --version
-    
-    # Verify checksum (example for Linux)
-    sha256sum -c checksums.txt --ignore-missing
-    ```
     
   footer: |
     ---

@@ -15,7 +15,9 @@ Quick release process for maintainers.
    git push origin v1.0.0
    ```
 
-3. **Verify release** at GitHub Releases page
+3. **Verify & approve the release**:
+   - Edit the draft and update the release notes
+   - Check [GitHub Releases](https://github.com/yourusername/lab-update-esxi-cert/releases)
 
 ## Semantic Versioning
 
