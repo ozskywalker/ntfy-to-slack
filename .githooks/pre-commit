@@ -1,0 +1,42 @@
+#!/bin/bash
+#
+# Pre-commit hook for ntfy-to-slack
+# Runs formatting, linting, and tests before allowing commit
+#
+
+set -e
+
+echo "Running pre-commit checks..."
+echo ""
+
+# Check formatting
+echo "1. Checking code formatting with gofmt..."
+UNFORMATTED=$(gofmt -s -l . 2>&1)
+if [ -n "$UNFORMATTED" ]; then
+    echo "❌ Code is not formatted properly. Please run 'gofmt -s -w .' on the following files:"
+    echo "$UNFORMATTED"
+    exit 1
+fi
+echo "✓ Code formatting is correct"
+echo ""
+
+# Run go vet
+echo "2. Running go vet..."
+if ! go vet ./... 2>&1; then
+    echo "❌ go vet found issues"
+    exit 1
+fi
+echo "✓ go vet passed"
+echo ""
+
+# Run tests (short mode for speed)
+echo "3. Running tests..."
+if ! go test -short ./... 2>&1; then
+    echo "❌ Tests failed"
+    exit 1
+fi
+echo "✓ Tests passed"
+echo ""
+
+echo "✅ All pre-commit checks passed!"
+echo ""
