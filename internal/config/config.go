@@ -120,7 +120,7 @@ func (c *Config) Validate() error {
 	}
 
 	if c.SlackWebhookURL == "" {
-		//lint:ignore ST1005 Slack is a proper noun
+		//nolint:staticcheck // ST1005: Slack is a proper noun
 		return fmt.Errorf("Slack webhook URL is required")
 	}
 
