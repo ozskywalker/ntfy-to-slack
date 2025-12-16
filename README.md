@@ -36,7 +36,7 @@ curl -L https://github.com/ozskywalker/ntfy-to-slack/releases/latest/download/nt
 chmod +x ntfy-to-slack
 
 # Windows (PowerShell)
-Invoke-WebRequest -Uri "https://github.com/ozskywalker/ntfy-to-slack/releases/latest/download/ntfy-to-slack-Windows-x86_64.zip" -OutFile "ntfy-to-slack.zip"
+Invoke-WebRequest -Uri "https://github.com/ozskywalker/ntfy-to-slack/releases/latest/download/ntfy-to-slack-Windows-x86_64.zip" -UseBasicParsing -OutFile "ntfy-to-slack.zip"
 Expand-Archive -Path "ntfy-to-slack.zip" -DestinationPath "."
 
 # Verify installation
