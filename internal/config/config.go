@@ -241,7 +241,7 @@ func getEnvOrDefault(key, defaultValue string) string {
 }
 
 func ValidateDomain(domain string) (string, error) {
-	domainPattern := regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z]{2,})+$`)
+	domainPattern := regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$`)
 	if !domainPattern.MatchString(domain) {
 		return "", fmt.Errorf("invalid domain format: %s", domain)
 	}
