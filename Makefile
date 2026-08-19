@@ -29,8 +29,8 @@ test-unit: ## Run unit tests only
 test-integration: ## Run integration tests only
 	$(GOTEST) -v ./tests/integration/...
 
-test-coverage: ## Run tests with coverage
-	$(GOTEST) -v -coverprofile=coverage.out ./tests/...
+test-coverage: ## Run tests with coverage (matches CI's -coverpkg so local numbers agree with the Coverage badge)
+	$(GOTEST) -v -coverprofile=coverage.out -coverpkg=./... ./tests/...
 	$(GOCMD) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
