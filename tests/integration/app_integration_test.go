@@ -276,25 +276,27 @@ func TestApp_PostProcessorIntegration(t *testing.T) {
 	}
 }
 
-// TestApp_ConnectionResilience tests app behavior with connection failures
+// TestApp_ConnectionResilience verifies that App.Run() never gives up: any
+// connection failure (a network error, or an invalid domain/topic that the
+// ntfy client rejects at connect time) must be logged and retried, not
+// returned as a fatal error. Run() is meant to be unattended (e.g. inside a
+// container with no one watching for it to exit), so it should keep running
+// through failures a human might otherwise fix and expect it to recover
+// from.
 func TestApp_ConnectionResilience(t *testing.T) {
+	const observeWindow = 2 * time.Second
+
 	tests := []struct {
-		name        string
-		domain      string
-		expectRetry bool
-		maxWaitTime time.Duration
+		name   string
+		domain string
 	}{
 		{
-			name:        "connection to nonexistent domain",
-			domain:      "definitely.nonexistent.domain.test",
-			expectRetry: true,
-			maxWaitTime: 5 * time.Second,
+			name:   "connection to nonexistent domain",
+			domain: "definitely.nonexistent.domain.test",
 		},
 		{
-			name:        "connection to invalid domain format",
-			domain:      "invalid-domain",
-			expectRetry: false, // Should fail immediately on validation
-			maxWaitTime: 2 * time.Second,
+			name:   "connection to invalid domain format",
+			domain: "invalid-domain",
 		},
 	}
 
@@ -314,31 +316,20 @@ func TestApp_ConnectionResilience(t *testing.T) {
 				t.Fatal("Failed to create app instance")
 			}
 
-			// Test that app returns error quickly on connection failure
-			start := time.Now()
 			done := make(chan error, 1)
-
 			go func() {
 				done <- app.Run()
 			}()
 
 			select {
 			case err := <-done:
-				duration := time.Since(start)
-
-				if err == nil {
-					t.Error("Expected error due to connection failure")
-				}
-
-				// Should fail within reasonable time
-				if duration > tt.maxWaitTime {
-					t.Errorf("App took too long to fail: %v (max: %v)", duration, tt.maxWaitTime)
-				}
-
-				t.Logf("App failed as expected in %v with error: %v", duration, err)
-
-			case <-time.After(tt.maxWaitTime):
-				t.Errorf("App did not fail within expected time (%v)", tt.maxWaitTime)
+				t.Fatalf("App.Run() returned after a connection failure instead of retrying: %v", err)
+			case <-time.After(observeWindow):
+				// Run() is still alive after the observation window, i.e. it
+				// logged the failure and is waiting to retry rather than
+				// exiting. This goroutine is intentionally leaked for the
+				// remainder of the test process; it does nothing but sleep
+				// and retry a connection that will keep failing.
 			}
 		})
 	}
