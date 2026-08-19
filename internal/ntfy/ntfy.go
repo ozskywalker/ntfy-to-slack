@@ -17,7 +17,12 @@ const maxErrorBodyBytes = 1024
 
 // Client interface for ntfy operations
 type Client interface {
-	Connect() (io.ReadCloser, error)
+	// Connect opens the ntfy JSON stream. since, if non-empty, is passed as
+	// ntfy's "since" query parameter (a message ID, unix timestamp, or
+	// duration) so a reconnect can resume after the last message seen
+	// instead of only receiving messages from the moment of reconnection
+	// onward. Pass "" for a fresh connection with no history.
+	Connect(since string) (io.ReadCloser, error)
 }
 
 // HTTPClient implements Client interface
@@ -42,7 +47,7 @@ func NewClient(domain, topic, auth string, client config.HTTPClient) *HTTPClient
 }
 
 // Connect implements Client interface
-func (n *HTTPClient) Connect() (io.ReadCloser, error) {
+func (n *HTTPClient) Connect(since string) (io.ReadCloser, error) {
 	// Validate inputs
 	domain, err := config.ValidateDomain(n.domain)
 	if err != nil {
@@ -56,6 +61,9 @@ func (n *HTTPClient) Connect() (io.ReadCloser, error) {
 
 	baseURL := fmt.Sprintf("https://%s", domain)
 	endpoint := fmt.Sprintf("/%s/json", url.PathEscape(topic))
+	if since != "" {
+		endpoint += "?" + url.Values{"since": {since}}.Encode()
+	}
 
 	req, err := http.NewRequest(
 		http.MethodGet,

@@ -14,6 +14,7 @@ import (
 type MessageProcessor struct {
 	sender        MessageSender
 	postProcessor config.PostProcessor
+	lastSeenID    string
 }
 
 // New creates a new message processor
@@ -50,12 +51,30 @@ func (p *MessageProcessor) ProcessStream(reader io.Reader) error {
 			continue
 		}
 
+		// Track the id of every well-formed line (not just "message" events)
+		// so a caller can resume the stream via ntfy's "since" parameter
+		// after a reconnect, without redelivering or losing messages. This
+		// advances regardless of whether delivery to Slack below succeeds,
+		// since the concern here is resuming ntfy's stream, not retrying
+		// Slack sends.
+		if msg.Id != "" {
+			p.lastSeenID = msg.Id
+		}
+
 		if err := p.processMessage(&msg); err != nil {
 			slog.Error("error processing message", "err", err, "msg_id", msg.Id, "topic", msg.Topic)
 		}
 	}
 
 	return scanner.Err()
+}
+
+// LastSeenID returns the id of the most recent well-formed message this
+// processor has seen, and whether one has been seen at all. It implements
+// the optional LastSeenTracker interface (see interfaces.go) so a caller
+// can resume the ntfy stream after this one closes.
+func (p *MessageProcessor) LastSeenID() (id string, ok bool) {
+	return p.lastSeenID, p.lastSeenID != ""
 }
 
 // processMessage processes a single ntfy message

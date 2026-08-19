@@ -19,7 +19,7 @@ Meant to run from a container you can set & forget.
 
 **Post-processing support:** Transform messages with a Go [`text/template`](https://pkg.go.dev/text/template) template, or call an external service via Webhook (like N8N), before passing the transformed result to Slack.
 
- - **Resilient by design:** Automatically reconnects on any connection failure (network errors, non-200 responses, or a closed stream) with a 30-second retry interval, and keeps processing subsequent messages despite individual message errors
+ - **Resilient by design:** Automatically reconnects on any connection failure (network errors, non-200 responses, or a closed stream) with a 30-second retry interval, resuming from the last message seen so a reconnect doesn't lose messages sent during the gap, and keeps processing subsequent messages despite individual message errors
  - **Structured logging with configurable levels:** Contextual logging with relevant metadata (domains, topics, error details) and configurable log levels (debug/info/warn/error) for better debugging and monitoring
  - **Modular, interface-driven design** for testability and maintainability
 
