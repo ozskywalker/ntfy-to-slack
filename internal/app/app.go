@@ -99,6 +99,14 @@ func New(cfg config.Provider, version string) *App {
 // attempt ends, whether it ended in error or the stream simply closed.
 const reconnectDelay = 30 * time.Second
 
+// idleTimeout bounds how long runOnce waits for any data on the ntfy stream
+// -- including a keepalive, which ntfy sends roughly every 45 seconds --
+// before treating the connection as silently dead. This is generous enough
+// to tolerate jitter on a healthy connection while still catching a stalled
+// one (e.g. a network partition producing no TCP RST/FIN) well before a
+// human would otherwise notice notifications had quietly stopped.
+const idleTimeout = 2 * time.Minute
+
 // Run starts the application main loop. It runs until ctx is canceled (e.g.
 // by a SIGTERM/SIGINT the caller wired into ctx): any connection or stream
 // error other than ctx's own cancellation is logged and retried rather than
@@ -133,9 +141,17 @@ func (a *App) Run(ctx context.Context) error {
 // It resumes from the last message id seen on a prior attempt (if any), so
 // that a reconnect after a dropped connection doesn't lose messages sent
 // during the gap. Canceling ctx unblocks a read in progress, not just a
-// pending Connect.
+// pending Connect. A connection that goes idle for longer than idleTimeout
+// is treated the same as any other connection failure: logged and retried,
+// not fatal.
 func (a *App) runOnce(ctx context.Context) error {
-	reader, err := a.ntfyClient.Connect(ctx, a.since)
+	// A dedicated child context lets the idle watchdog abort just this
+	// connection's request without affecting ctx itself -- canceling connCtx
+	// on a timeout must not look like ctx (and therefore Run) being done.
+	connCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	reader, err := a.ntfyClient.Connect(connCtx, a.since)
 	if err != nil {
 		return fmt.Errorf("failed to connect to ntfy: %w", err)
 	}
@@ -143,12 +159,19 @@ func (a *App) runOnce(ctx context.Context) error {
 
 	slog.Info("connected to ntfy", "domain", a.config.GetNtfyDomain(), "topic", a.config.GetNtfyTopic(), "since", a.since)
 
-	err = a.processor.ProcessStream(reader)
+	watchdog := NewIdleWatchdogReader(reader, idleTimeout, cancel)
+	defer watchdog.Stop()
+
+	err = a.processor.ProcessStream(watchdog)
 
 	if tracker, ok := a.processor.(processor.LastSeenTracker); ok {
 		if id, seen := tracker.LastSeenID(); seen {
 			a.since = id
 		}
+	}
+
+	if err != nil && watchdog.TimedOut() {
+		return fmt.Errorf("ntfy stream idle for over %s, reconnecting: %w", idleTimeout, err)
 	}
 
 	return err
