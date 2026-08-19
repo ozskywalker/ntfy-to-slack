@@ -156,6 +156,19 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("only one post-processing option can be specified: webhook, template file, or inline template")
 	}
 
+	// Validate the configured template, if any, so a syntax error is caught
+	// at startup instead of silently falling back to default formatting
+	// once the app is already running.
+	if c.PostProcessTemplateFile != "" {
+		if _, err := NewTemplatePostProcessorFromFile(c.PostProcessTemplateFile); err != nil {
+			return fmt.Errorf("invalid post-process template file: %w", err)
+		}
+	} else if c.PostProcessTemplate != "" {
+		if _, err := NewTemplatePostProcessor(c.PostProcessTemplate); err != nil {
+			return fmt.Errorf("invalid post-process template: %w", err)
+		}
+	}
+
 	// Validate webhook URL if specified
 	if c.PostProcessWebhook != "" {
 		webhookURL, err := url.Parse(c.PostProcessWebhook)

@@ -388,6 +388,22 @@ func TestConfig_TemplateFileIntegration(t *testing.T) {
 	// Non-existent file path (for future use in tests)
 	_ = filepath.Join(tempDir, "non-existent.tmpl")
 
+	// Validate() now parses the template file to catch syntax errors at
+	// startup, so the "relative path" case below needs to resolve to a real
+	// file. Run from tempDir so a relative path actually finds it.
+	origWd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("Failed to get working directory: %v", err)
+	}
+	if err := os.Chdir(tempDir); err != nil {
+		t.Fatalf("Failed to chdir into temp directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(origWd); err != nil {
+			t.Fatalf("Failed to restore working directory: %v", err)
+		}
+	}()
+
 	tests := []struct {
 		name             string
 		templateFilePath string
@@ -412,9 +428,9 @@ func TestConfig_TemplateFileIntegration(t *testing.T) {
 		},
 		{
 			name:             "relative template file path",
-			templateFilePath: "./tests/fixtures/template.tmpl", // This won't exist but path validation should work
+			templateFilePath: "./valid-template.tmpl", // relative to tempDir, which is the cwd for this test
 			shouldError:      false,
-			expectedPath:     "./tests/fixtures/template.tmpl",
+			expectedPath:     "./valid-template.tmpl",
 			description:      "Should accept relative template file paths",
 		},
 		{
@@ -423,6 +439,22 @@ func TestConfig_TemplateFileIntegration(t *testing.T) {
 			shouldError:      false,
 			expectedPath:     validTemplatePath,
 			description:      "Should accept absolute template file paths",
+		},
+		{
+			name:             "invalid template file syntax",
+			templateFilePath: invalidTemplatePath,
+			shouldError:      true,
+			errorContains:    "invalid post-process template file",
+			expectedPath:     invalidTemplatePath,
+			description:      "Should reject a template file with invalid syntax at validation time",
+		},
+		{
+			name:             "non-existent template file",
+			templateFilePath: filepath.Join(tempDir, "does-not-exist.tmpl"),
+			shouldError:      true,
+			errorContains:    "invalid post-process template file",
+			expectedPath:     filepath.Join(tempDir, "does-not-exist.tmpl"),
+			description:      "Should reject a template file that does not exist at validation time",
 		},
 	}
 
