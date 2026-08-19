@@ -31,9 +31,17 @@ func NewWithPostProcessor(sender MessageSender, postProcessor config.PostProcess
 	}
 }
 
+// maxLineBytes bounds how large a single ntfy JSON line (message text plus
+// attachment metadata) may be before ProcessStream gives up on the
+// connection. bufio.Scanner's default 64KB limit is too easy to exceed with
+// a large message or attachment, which would otherwise surface as a fatal
+// ErrTooLong on an otherwise-healthy stream.
+const maxLineBytes = 1024 * 1024
+
 // ProcessStream implements StreamProcessor interface
 func (p *MessageProcessor) ProcessStream(reader io.Reader) error {
 	scanner := bufio.NewScanner(reader)
+	scanner.Buffer(make([]byte, 0, 64*1024), maxLineBytes)
 	for scanner.Scan() {
 		var msg config.NtfyMessage
 		err := json.Unmarshal([]byte(scanner.Text()), &msg)

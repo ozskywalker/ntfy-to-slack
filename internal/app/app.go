@@ -22,11 +22,16 @@ type App struct {
 
 // New creates a new application instance
 func New(cfg config.Provider, version string) *App {
-	// Create HTTP client
-	httpClient := &http.Client{}
+	// The ntfy client streams a long-lived response body, so its client must
+	// not set http.Client.Timeout (which bounds the entire round trip,
+	// including reading the body, and would kill the connection). Slack
+	// sends are short request/response calls and get their own client with
+	// its own timeout (see slack.NewSender) so a slow or hung Slack webhook
+	// can never block the ntfy stream from being read.
+	ntfyHTTPClient := &http.Client{}
 
 	// Create Slack sender
-	slackSender := slack.NewSender(cfg.GetSlackWebhookURL(), httpClient)
+	slackSender := slack.NewSender(cfg.GetSlackWebhookURL(), nil)
 
 	// Create post-processor if configured
 	var postProcessor config.PostProcessor
@@ -45,14 +50,14 @@ func New(cfg config.Provider, version string) *App {
 			"retries", cfg.GetWebhookRetries(),
 			"max_response_size_mb", cfg.GetWebhookMaxResponseSizeMB())
 	} else if cfg.GetPostProcessTemplateFile() != "" {
-		postProcessor, err = config.NewMustachePostProcessorFromFile(cfg.GetPostProcessTemplateFile())
+		postProcessor, err = config.NewTemplatePostProcessorFromFile(cfg.GetPostProcessTemplateFile())
 		if err != nil {
 			slog.Error("failed to load template file, using default formatting", "file", cfg.GetPostProcessTemplateFile(), "err", err)
 		} else {
 			slog.Info("template file post-processor configured", "file", cfg.GetPostProcessTemplateFile())
 		}
 	} else if cfg.GetPostProcessTemplate() != "" {
-		postProcessor, err = config.NewMustachePostProcessor(cfg.GetPostProcessTemplate())
+		postProcessor, err = config.NewTemplatePostProcessor(cfg.GetPostProcessTemplate())
 		if err != nil {
 			slog.Error("failed to parse inline template, using default formatting", "err", err)
 		} else {
@@ -73,7 +78,7 @@ func New(cfg config.Provider, version string) *App {
 		cfg.GetNtfyDomain(),
 		cfg.GetNtfyTopic(),
 		cfg.GetNtfyAuth(),
-		httpClient,
+		ntfyHTTPClient,
 	)
 
 	return &App{
@@ -84,16 +89,23 @@ func New(cfg config.Provider, version string) *App {
 	}
 }
 
-// Run starts the application main loop
+// reconnectDelay is how long Run waits before retrying after a connection
+// attempt ends, whether it ended in error or the stream simply closed.
+const reconnectDelay = 30 * time.Second
+
+// Run starts the application main loop. It runs until the process is
+// terminated: any connection or stream error is logged and retried rather
+// than treated as fatal, since this is meant to run unattended (e.g. in a
+// container with no one watching for it to exit).
 func (a *App) Run() error {
 	for {
 		if err := a.runOnce(); err != nil {
-			slog.Error("connection failed", "err", err)
-			return err
+			slog.Error("connection failed, retrying", "err", err, "retry_in", reconnectDelay)
+		} else {
+			slog.Info("connection closed, restarting", "retry_in", reconnectDelay)
 		}
 
-		slog.Info("connection closed, restarting in 30 seconds")
-		time.Sleep(30 * time.Second)
+		time.Sleep(reconnectDelay)
 	}
 }
 
