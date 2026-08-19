@@ -3,6 +3,7 @@ package processor
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 
@@ -42,7 +43,7 @@ func (p *MessageProcessor) ProcessStream(reader io.Reader) error {
 		}
 
 		if err := p.processMessage(&msg); err != nil {
-			slog.Error("error processing message", "err", err)
+			slog.Error("error processing message", "err", err, "msg_id", msg.Id, "topic", msg.Topic)
 		}
 	}
 
@@ -68,22 +69,30 @@ func (p *MessageProcessor) processMessage(msg *config.NtfyMessage) error {
 
 // handleMessageEvent handles ntfy message events
 func (p *MessageProcessor) handleMessageEvent(msg *config.NtfyMessage) error {
-	slog.Info("received message from ntfy", "title", msg.Title, "message", msg.Message)
+	// Scope every line for this message to the id ntfy assigned it, so a
+	// failure can be correlated back to the message that produced it.
+	log := slog.With("msg_id", msg.Id, "topic", msg.Topic)
+	log.Info("received message from ntfy", "title", msg.Title, "message", msg.Message)
 
 	// Use post-processor if available
 	if p.postProcessor != nil {
-		slog.Info("sending message to post-processor")
+		log.Info("sending message to post-processor")
 		slackMsg, err := p.postProcessor.Process(msg)
 		if err != nil {
-			slog.Warn("post-processing failed, using default format", "err", err, "title", msg.Title)
-			return p.sender.Send(p.createDefaultMessage(msg))
+			log.Warn("post-processing failed, using default format", "err", err, "title", msg.Title)
+			if sendErr := p.sender.Send(p.createDefaultMessage(msg)); sendErr != nil {
+				// Name the fallback explicitly: what reached Slack was the
+				// default format, not the post-processed message.
+				return fmt.Errorf("delivering default-format fallback: %w", sendErr)
+			}
+			return nil
 		}
-		slog.Info("post-processing complete, sending to Slack")
-		slog.Debug("post-processed message", "text", slackMsg.Text)
+		log.Info("post-processing complete, sending to Slack")
+		log.Debug("post-processed message", "text", slackMsg.Text)
 		return p.sender.Send(slackMsg)
 	}
 
-	slog.Info("sending message to Slack", "title", msg.Title)
+	log.Info("sending message to Slack", "title", msg.Title)
 	return p.sender.Send(p.createDefaultMessage(msg))
 }
 

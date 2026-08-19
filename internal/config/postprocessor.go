@@ -199,7 +199,7 @@ func (w *WebhookPostProcessor) Process(message *NtfyMessage) (*SlackMessage, err
 			// Don't retry on client errors (4xx), only on server errors (5xx) and network issues
 			if resp.StatusCode >= 400 && resp.StatusCode < 500 {
 				slog.Debug("webhook client error, not retrying", "status", resp.StatusCode)
-				return nil, lastErr
+				return nil, fmt.Errorf("webhook post-processing failed (%s): %w", w.webhookURL, lastErr)
 			}
 
 			slog.Debug("webhook server error, will retry", "status", resp.StatusCode, "attempt", attempt+1)
@@ -236,5 +236,6 @@ func (w *WebhookPostProcessor) Process(message *NtfyMessage) (*SlackMessage, err
 		return &slackMsg, nil
 	}
 
-	return nil, fmt.Errorf("webhook failed after %d retries: %w", w.maxRetries+1, lastErr)
+	// maxRetries+1 is the number of attempts made, not the number of retries.
+	return nil, fmt.Errorf("webhook post-processing failed after %d attempts (%s): %w", w.maxRetries+1, w.webhookURL, lastErr)
 }

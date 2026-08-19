@@ -4,14 +4,20 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
 )
+
+// maxResponseBytes caps how much of the Slack response is read. Slack's
+// replies are short status strings ("ok", "invalid_payload"), so this is
+// generous while keeping a misbehaving endpoint from exhausting memory.
+const maxResponseBytes = 1024
 
 // Sender implements MessageSender interface
 type Sender struct {
@@ -72,15 +78,22 @@ func (s *Sender) Send(message *config.SlackMessage) error {
 		}
 	}(resp.Body)
 
-	if body, err := io.ReadAll(resp.Body); err != nil {
-		slog.Error("error parsing body", "err", err)
-		return err
-	} else {
-		slog.Debug("slack response", "status", resp.StatusCode, "body", string(body))
+	// Slack explains rejections in the response body (invalid_payload, no_text,
+	// channel_not_found, ...), so keep it in scope for the error below instead
+	// of discarding it after a debug log. The webhook URL is a credential and
+	// must never appear in the returned error.
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBytes))
+	if err != nil {
+		return fmt.Errorf("reading Slack response (status %d): %w", resp.StatusCode, err)
 	}
+	slog.Debug("slack response", "status", resp.StatusCode, "body", string(body))
 
 	if resp.StatusCode >= 400 {
-		return errors.New("error status code " + strconv.FormatInt(int64(resp.StatusCode), 10))
+		detail := strings.TrimSpace(string(body))
+		if detail == "" {
+			detail = "(empty response body)"
+		}
+		return fmt.Errorf("slack webhook returned %d: %s", resp.StatusCode, detail)
 	}
 
 	return nil

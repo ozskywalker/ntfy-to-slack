@@ -6,9 +6,14 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
 )
+
+// maxErrorBodyBytes caps how much of a failed ntfy response is read for the
+// error detail.
+const maxErrorBodyBytes = 1024
 
 // Client interface for ntfy operations
 type Client interface {
@@ -73,11 +78,19 @@ func (n *HTTPClient) Connect() (io.ReadCloser, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		// ntfy describes the failure in the body (e.g. {"code":40101,
+		// "error":"unauthorized"}), which is far more actionable than the
+		// status code alone.
+		body, _ := io.ReadAll(io.LimitReader(resp.Body, maxErrorBodyBytes))
 		if closeErr := resp.Body.Close(); closeErr != nil {
 			slog.Debug("failed to close response body", "err", closeErr)
 		}
-		slog.Error("invalid status code", "expected", http.StatusOK, "domain", n.domain, "statusCode", resp.StatusCode)
-		return nil, fmt.Errorf("invalid response code from ntfy: %d", resp.StatusCode)
+		detail := strings.TrimSpace(string(body))
+		if detail == "" {
+			detail = "(empty response body)"
+		}
+		slog.Error("invalid status code", "expected", http.StatusOK, "domain", n.domain, "statusCode", resp.StatusCode, "body", detail)
+		return nil, fmt.Errorf("invalid response code from ntfy: %d: %s", resp.StatusCode, detail)
 	}
 
 	return resp.Body, nil
