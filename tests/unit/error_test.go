@@ -1,6 +1,7 @@
 package unit_test
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -75,7 +76,7 @@ func TestNtfyClient_ErrorConditions(t *testing.T) {
 			}
 
 			client := ntfy.NewClient(tt.domain, tt.topic, tt.auth, mockClient)
-			_, err := client.Connect("")
+			_, err := client.Connect(context.Background(), "")
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Connect() error = %v, wantErr %v", err, tt.wantErr)

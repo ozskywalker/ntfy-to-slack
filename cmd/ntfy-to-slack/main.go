@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/app"
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
@@ -44,8 +48,12 @@ func main() {
 	// Create application
 	application := app.New(cfg, version.Get().String())
 
+	// Run until asked to stop (e.g. `docker stop`, which sends SIGTERM).
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	// Run application
-	if err := application.Run(); err != nil {
+	if err := application.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		slog.Error("application error", "err", err)
 		os.Exit(1)
 	}

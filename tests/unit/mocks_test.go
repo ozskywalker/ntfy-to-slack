@@ -1,6 +1,7 @@
 package unit_test
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -49,12 +50,12 @@ func (m *MockConfigProvider) Validate() error                    { return nil }
 
 // MockNtfyClient implements ntfy.Client interface for testing
 type MockNtfyClient struct {
-	ConnectFunc func(since string) (io.ReadCloser, error)
+	ConnectFunc func(ctx context.Context, since string) (io.ReadCloser, error)
 }
 
-func (m *MockNtfyClient) Connect(since string) (io.ReadCloser, error) {
+func (m *MockNtfyClient) Connect(ctx context.Context, since string) (io.ReadCloser, error) {
 	if m.ConnectFunc != nil {
-		return m.ConnectFunc(since)
+		return m.ConnectFunc(ctx, since)
 	}
 	return io.NopCloser(strings.NewReader("")), nil
 }
