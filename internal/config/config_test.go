@@ -1,4 +1,4 @@
-package unit_test
+package config_test
 
 import (
 	"fmt"
@@ -413,60 +413,6 @@ func TestConfigInterface(t *testing.T) {
 	}
 }
 
-func TestGetEnvOrDefault(t *testing.T) {
-	// getEnvOrDefault is not exported, skip this test
-	t.Skip("getEnvOrDefault is internal function, not testable")
-
-	/*
-		tests := []struct {
-			name         string
-			key          string
-			defaultValue string
-			envValue     string
-			expected     string
-		}{
-			{
-				name:         "environment variable set",
-				key:          "TEST_VAR",
-				defaultValue: "default",
-				envValue:     "env-value",
-				expected:     "env-value",
-			},
-			{
-				name:         "environment variable not set",
-				key:          "TEST_VAR_NOT_SET",
-				defaultValue: "default",
-				envValue:     "",
-				expected:     "default",
-			},
-			{
-				name:         "empty environment variable",
-				key:          "TEST_VAR_EMPTY",
-				defaultValue: "default",
-				envValue:     "",
-				expected:     "default",
-			},
-		}
-
-		for _, tt := range tests {
-			t.Run(tt.name, func(t *testing.T) {
-				// Set up environment
-				oldValue := os.Getenv(tt.key)
-				if tt.envValue != "" {
-					os.Setenv(tt.key, tt.envValue)
-				} else {
-					os.Unsetenv(tt.key)
-				}
-				defer func() {
-					if oldValue != "" {
-						os.Setenv(tt.key, oldValue)
-					} else {
-						os.Unsetenv(tt.key)
-					}
-				}()
-
-				// Test skipped - function not exported
-			})
-		}
-	*/
-}
+// getEnvOrDefault and getEnvIntOrDefault are unexported; see
+// internal_test.go (package config, not config_test) for coverage of them
+// directly, now that colocating tests makes that possible.

@@ -62,9 +62,11 @@ When creating or editing files:
 
 ## Testing Commands
 
-When working on this project, always run tests using:
+Tests live beside the code they cover (e.g. `internal/config/config_test.go`),
+not in a separate `tests/` tree. When working on this project, always run
+tests using:
 ```bash
-go test -v ./tests/...
+go test -v ./...
 ```
 
 ## Linting and Code Quality
@@ -115,7 +117,7 @@ goreleaser build --single-target --snapshot --clean
 ## Complete Local Development Checklist
 
 Before committing changes:
-1. **Run tests**: `go test -v ./tests/...`
+1. **Run tests**: `go test -v ./...`
 2. **Run linting**: `make lint-golangci`
 3. **Build application**: `go build -v ./cmd/ntfy-to-slack`
 4. **Test version system**: `./ntfy-to-slack -v`

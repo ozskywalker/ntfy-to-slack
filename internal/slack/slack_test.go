@@ -1,4 +1,4 @@
-package unit_test
+package slack_test
 
 import (
 	"encoding/json"
@@ -11,6 +11,7 @@ import (
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
 	"github.com/ozskywalker/ntfy-to-slack/internal/slack"
+	"github.com/ozskywalker/ntfy-to-slack/internal/testutil"
 )
 
 // boolPtr returns a pointer to the given boolean value.
@@ -28,7 +29,7 @@ func TestNewSlackSender(t *testing.T) {
 		{
 			name:       "with custom client",
 			webhookURL: "https://hooks.slack.com/test",
-			client:     &MockHTTPClient{},
+			client:     &testutil.MockHTTPClient{},
 			wantNil:    false,
 		},
 		{
@@ -120,7 +121,7 @@ func TestSlackSender_Send(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedReq *http.Request
 
-			mockClient := &MockHTTPClient{
+			mockClient := &testutil.MockHTTPClient{
 				DoFunc: func(req *http.Request) (*http.Response, error) {
 					capturedReq = req
 					if tt.mockError != nil {
@@ -232,7 +233,7 @@ func TestSlackSender_Send_Retry(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var callCount int
-			mockClient := &MockHTTPClient{
+			mockClient := &testutil.MockHTTPClient{
 				DoFunc: func(req *http.Request) (*http.Response, error) {
 					idx := callCount
 					callCount++

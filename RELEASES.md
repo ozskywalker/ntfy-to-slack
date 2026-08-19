@@ -6,7 +6,7 @@ Quick release process for maintainers.
 
 1. **Ensure all tests pass**:
    ```bash
-   go test ./tests/...
+   go test ./...
    ```
 
 2. **Create and push tag**:

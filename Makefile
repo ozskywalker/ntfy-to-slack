@@ -1,4 +1,4 @@
-.PHONY: test test-unit test-integration test-coverage build clean help fmt fmt-check lint lint-golangci
+.PHONY: test test-coverage test-short build clean help fmt fmt-check lint lint-golangci
 
 # Go parameters
 GOCMD=go
@@ -21,21 +21,15 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 test: ## Run all tests
-	$(GOTEST) -v ./tests/...
+	$(GOTEST) -v ./...
 
-test-unit: ## Run unit tests only
-	$(GOTEST) -v ./tests/unit/...
-
-test-integration: ## Run integration tests only
-	$(GOTEST) -v ./tests/integration/...
-
-test-coverage: ## Run tests with coverage (matches CI's -coverpkg so local numbers agree with the Coverage badge)
-	$(GOTEST) -v -coverprofile=coverage.out -coverpkg=./... ./tests/...
+test-coverage: ## Run tests with coverage (matches CI's flags so local numbers agree with the Coverage badge)
+	$(GOTEST) -v -coverprofile=coverage.out ./...
 	$(GOCMD) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
 test-short: ## Run tests in short mode
-	$(GOTEST) -v -short ./tests/...
+	$(GOTEST) -v -short ./...
 
 build: ## Build the binary
 	$(GOBUILD) -o $(BINARY_NAME) -v ./cmd/ntfy-to-slack
@@ -64,7 +58,7 @@ fmt-check: ## Check if code is properly formatted
 	fi
 
 lint: fmt-check ## Run formatting check and go vet
-	$(GOCMD) vet ./cmd/... ./internal/... ./tests/...
+	$(GOCMD) vet ./...
 
 lint-golangci: ## Run golangci-lint with the same version and flags as CI
 	@command -v golangci-lint >/dev/null 2>&1 || { \

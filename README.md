@@ -168,48 +168,57 @@ Command-line flags take precedence over environment variables.
 ```
 ├── cmd/
 │   └── ntfy-to-slack/
-│       └── main.go               # Main entry point
+│       ├── main.go               # Main entry point
+│       └── main_test.go
 ├── internal/                     # Internal packages (not importable externally)
 │   ├── app/
-│   │   └── app.go                # Application orchestration
+│   │   ├── app.go                # Application orchestration
+│   │   ├── idlewatchdog.go       # Dead-connection detection
+│   │   └── *_test.go
 │   ├── config/
 │   │   ├── config.go             # Configuration management
-│   │   └── postprocessor.go      # Post-processing (templates & webhooks)
+│   │   ├── postprocessor.go      # Post-processing (templates & webhooks)
+│   │   └── *_test.go
 │   ├── ntfy/
-│   │   └── ntfy.go               # Ntfy client
+│   │   ├── ntfy.go               # Ntfy client
+│   │   └── *_test.go
 │   ├── processor/
 │   │   ├── processor.go          # Message processing
-│   │   └── interfaces.go         # Clean interface definitions
-│   └── slack/
-│       └── slack.go              # Slack integration
-├── tests/
-│   ├── unit/                     # Unit tests
-│   │   └── *_test.go             # Component-specific unit tests
-│   └── integration/              # Integration tests
-│       └── *_test.go             # End-to-end integration tests
+│   │   ├── interfaces.go         # Clean interface definitions
+│   │   └── *_test.go
+│   ├── slack/
+│   │   ├── slack.go              # Slack integration
+│   │   └── *_test.go
+│   ├── testutil/
+│   │   └── mocks.go              # Test doubles shared across packages' tests
+│   └── version/
+│       ├── version.go
+│       └── version_test.go
 ├── Makefile                      # Test automation
 └── .github/workflows/            # CI/CD pipeline
 ```
 
+Tests live beside the code they cover (Go's standard layout), rather than in a
+separate `tests/` tree -- this lets a test reach unexported internals when it
+needs to, and `go test ./...` reports accurate per-package coverage with no
+extra flags.
+
 ## Testing
 
-This project includes a comprehensive test suite covering unit tests, integration tests, and HTTP interactions.
+This project includes a comprehensive test suite covering unit tests, integration-style tests, and HTTP interactions.
 
 ### Running Tests
 
 ```bash
 # Run all tests
-go test -v ./tests/...
+go test -v ./...
 
 # Run tests with coverage
-go test -v -coverprofile=coverage.out -coverpkg=./... ./tests/...
+go test -v -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out -o coverage.html
 
-# Run only unit tests
-go test -v ./tests/unit/...
-
-# Run only integration tests
-go test -v ./tests/integration/...
+# Run just one package's tests
+go test -v ./internal/config/...
 ```
 
 ### Using Make (if available)
@@ -220,12 +229,6 @@ make test
 
 # Run tests with coverage report
 make test-coverage
-
-# Run only unit tests
-make test-unit
-
-# Run only integration tests
-make test-integration
 
 # Run full build pipeline
 make all

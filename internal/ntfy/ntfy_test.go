@@ -1,4 +1,4 @@
-package unit_test
+package ntfy_test
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
 	"github.com/ozskywalker/ntfy-to-slack/internal/ntfy"
+	"github.com/ozskywalker/ntfy-to-slack/internal/testutil"
 )
 
 func TestNewNtfyClient(t *testing.T) {
@@ -26,7 +27,7 @@ func TestNewNtfyClient(t *testing.T) {
 			domain: "ntfy.sh",
 			topic:  "test-topic",
 			auth:   "auth-token",
-			client: &MockHTTPClient{},
+			client: &testutil.MockHTTPClient{},
 		},
 		{
 			name:   "with nil client creates default",
@@ -136,7 +137,7 @@ func TestNtfyHTTPClient_Connect(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedReq *http.Request
 
-			mockClient := &MockHTTPClient{
+			mockClient := &testutil.MockHTTPClient{
 				DoFunc: func(req *http.Request) (*http.Response, error) {
 					capturedReq = req
 					if tt.mockError != nil {
@@ -210,7 +211,7 @@ func TestNtfyHTTPClient_Connect_Since(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedReq *http.Request
 
-			mockClient := &MockHTTPClient{
+			mockClient := &testutil.MockHTTPClient{
 				DoFunc: func(req *http.Request) (*http.Response, error) {
 					capturedReq = req
 					return &http.Response{
@@ -280,7 +281,7 @@ func TestNtfyHTTPClient_Connect_Auth(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedReq *http.Request
 
-			mockClient := &MockHTTPClient{
+			mockClient := &testutil.MockHTTPClient{
 				DoFunc: func(req *http.Request) (*http.Response, error) {
 					capturedReq = req
 					return &http.Response{
@@ -334,7 +335,7 @@ func TestNtfyHTTPClient_Connect_Integration(t *testing.T) {
 	defer server.Close()
 
 	// Create a mock HTTP client that calls our test server
-	mockClient := &MockHTTPClient{
+	mockClient := &testutil.MockHTTPClient{
 		DoFunc: func(req *http.Request) (*http.Response, error) {
 			// Replace the URL host with our test server
 			req.URL.Host = strings.TrimPrefix(server.URL, "http://")
@@ -381,7 +382,7 @@ func TestNtfyHTTPClient_Connect_URLEncoding(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			var capturedReq *http.Request
 
-			mockClient := &MockHTTPClient{
+			mockClient := &testutil.MockHTTPClient{
 				DoFunc: func(req *http.Request) (*http.Response, error) {
 					capturedReq = req
 					return &http.Response{

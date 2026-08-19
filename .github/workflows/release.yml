@@ -33,7 +33,7 @@ jobs:
           go-version-file: go.mod
 
       - name: Run tests
-        run: go test -v ./tests/...
+        run: go test -v ./...
 
       - name: Import GPG key
         id: import_gpg
