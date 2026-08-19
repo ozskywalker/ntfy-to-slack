@@ -14,6 +14,8 @@ type MockConfigProvider struct {
 	Domain                   string
 	Topic                    string
 	Auth                     string
+	Username                 string
+	Password                 string
 	WebhookURL               string
 	PostProcessWebhook       string
 	PostProcessTemplate      string
@@ -26,6 +28,8 @@ type MockConfigProvider struct {
 func (m *MockConfigProvider) GetNtfyDomain() string              { return m.Domain }
 func (m *MockConfigProvider) GetNtfyTopic() string               { return m.Topic }
 func (m *MockConfigProvider) GetNtfyAuth() string                { return m.Auth }
+func (m *MockConfigProvider) GetNtfyUsername() string            { return m.Username }
+func (m *MockConfigProvider) GetNtfyPassword() string            { return m.Password }
 func (m *MockConfigProvider) GetSlackWebhookURL() string         { return m.WebhookURL }
 func (m *MockConfigProvider) GetPostProcessWebhook() string      { return m.PostProcessWebhook }
 func (m *MockConfigProvider) GetPostProcessTemplate() string     { return m.PostProcessTemplate }

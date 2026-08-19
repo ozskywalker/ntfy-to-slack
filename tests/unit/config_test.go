@@ -218,6 +218,62 @@ func TestConfigValidate(t *testing.T) {
 			errMsg:  "invalid Slack webhook URL format",
 		},
 		{
+			name: "valid ntfy bearer token auth",
+			config: &config.Config{
+				NtfyDomain:      "ntfy.sh",
+				NtfyTopic:       "test-topic",
+				SlackWebhookURL: "https://hooks.slack.com/test",
+				NtfyAuth:        "tk_sometoken",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid ntfy username/password auth",
+			config: &config.Config{
+				NtfyDomain:      "ntfy.sh",
+				NtfyTopic:       "test-topic",
+				SlackWebhookURL: "https://hooks.slack.com/test",
+				NtfyUsername:    "alice",
+				NtfyPassword:    "hunter2",
+			},
+			wantErr: false,
+		},
+		{
+			name: "ntfy auth token and username/password are mutually exclusive",
+			config: &config.Config{
+				NtfyDomain:      "ntfy.sh",
+				NtfyTopic:       "test-topic",
+				SlackWebhookURL: "https://hooks.slack.com/test",
+				NtfyAuth:        "tk_sometoken",
+				NtfyUsername:    "alice",
+				NtfyPassword:    "hunter2",
+			},
+			wantErr: true,
+			errMsg:  "only one ntfy authentication method",
+		},
+		{
+			name: "ntfy username without password is rejected",
+			config: &config.Config{
+				NtfyDomain:      "ntfy.sh",
+				NtfyTopic:       "test-topic",
+				SlackWebhookURL: "https://hooks.slack.com/test",
+				NtfyUsername:    "alice",
+			},
+			wantErr: true,
+			errMsg:  "must both be specified together",
+		},
+		{
+			name: "ntfy password without username is rejected",
+			config: &config.Config{
+				NtfyDomain:      "ntfy.sh",
+				NtfyTopic:       "test-topic",
+				SlackWebhookURL: "https://hooks.slack.com/test",
+				NtfyPassword:    "hunter2",
+			},
+			wantErr: true,
+			errMsg:  "must both be specified together",
+		},
+		{
 			name: "valid inline template",
 			config: &config.Config{
 				NtfyDomain:          "ntfy.sh",

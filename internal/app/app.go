@@ -84,6 +84,8 @@ func New(cfg config.Provider, version string) *App {
 		cfg.GetNtfyDomain(),
 		cfg.GetNtfyTopic(),
 		cfg.GetNtfyAuth(),
+		cfg.GetNtfyUsername(),
+		cfg.GetNtfyPassword(),
 		ntfyHTTPClient,
 	)
 
@@ -189,6 +191,8 @@ func (a *App) PrintHelp() {
 	fmt.Println("  --ntfy-domain string              Choose the ntfy server to interact with (default \"ntfy.sh\")")
 	fmt.Println("  --ntfy-topic string               Choose the ntfy topic to interact with")
 	fmt.Println("  --ntfy-auth string                Specify token for reserved topics")
+	fmt.Println("  --ntfy-username string            Username for HTTP Basic auth on reserved topics (mutually exclusive with --ntfy-auth)")
+	fmt.Println("  --ntfy-password string            Password for HTTP Basic auth on reserved topics (requires --ntfy-username)")
 	fmt.Println("  --slack-webhook string            Choose the slack webhook url to send messages to")
 	fmt.Println("  --post-process-webhook string     Webhook URL for post-processing messages")
 	fmt.Println("  --post-process-template-file path Template file for post-processing messages")
@@ -207,6 +211,8 @@ func (a *App) PrintHelp() {
 	fmt.Println("  NTFY_DOMAIN                ntfy server to connect to (default \"ntfy.sh\")")
 	fmt.Println("  NTFY_TOPIC                 ntfy topic to subscribe to")
 	fmt.Println("  NTFY_AUTH                  Authentication token for reserved topics")
+	fmt.Println("  NTFY_USERNAME              Username for HTTP Basic auth (mutually exclusive with NTFY_AUTH)")
+	fmt.Println("  NTFY_PASSWORD              Password for HTTP Basic auth (requires NTFY_USERNAME)")
 	fmt.Println("  SLACK_WEBHOOK_URL          Slack webhook URL")
 	fmt.Println("  POST_PROCESS_WEBHOOK       Webhook URL for post-processing")
 	fmt.Println("  POST_PROCESS_TEMPLATE_FILE Template file path for post-processing")

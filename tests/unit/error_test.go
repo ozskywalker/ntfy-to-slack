@@ -75,7 +75,7 @@ func TestNtfyClient_ErrorConditions(t *testing.T) {
 				},
 			}
 
-			client := ntfy.NewClient(tt.domain, tt.topic, tt.auth, mockClient)
+			client := ntfy.NewClient(tt.domain, tt.topic, tt.auth, "", "", mockClient)
 			_, err := client.Connect(context.Background(), "")
 
 			if (err != nil) != tt.wantErr {

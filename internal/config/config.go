@@ -14,6 +14,8 @@ type Provider interface {
 	GetNtfyDomain() string
 	GetNtfyTopic() string
 	GetNtfyAuth() string
+	GetNtfyUsername() string
+	GetNtfyPassword() string
 	GetSlackWebhookURL() string
 	GetPostProcessWebhook() string
 	GetPostProcessTemplateFile() string
@@ -26,13 +28,16 @@ type Provider interface {
 
 // Config holds all application configuration
 type Config struct {
-	NtfyDomain               string
-	NtfyTopic                string
-	NtfyAuth                 string
-	SlackWebhookURL          string
-	LogLevel                 string
-	ShowVersion              bool
-	ShowHelp                 bool
+	NtfyDomain      string
+	NtfyTopic       string
+	NtfyAuth        string
+	NtfyUsername    string
+	NtfyPassword    string
+	SlackWebhookURL string
+	LogLevel        string
+	ShowVersion     bool
+	ShowHelp        bool
+
 	PostProcessWebhook       string
 	PostProcessTemplateFile  string
 	PostProcessTemplate      string
@@ -52,6 +57,8 @@ func New(args []string) (*Config, error) {
 	envNtfyDomain := getEnvOrDefault("NTFY_DOMAIN", "ntfy.sh")
 	envNtfyTopic := os.Getenv("NTFY_TOPIC")
 	envNtfyAuth := os.Getenv("NTFY_AUTH")
+	envNtfyUsername := os.Getenv("NTFY_USERNAME")
+	envNtfyPassword := os.Getenv("NTFY_PASSWORD")
 	envSlackWebhookURL := os.Getenv("SLACK_WEBHOOK_URL")
 	envLogLevel := getEnvOrDefault("LOG_LEVEL", "info")
 	envPostProcessWebhook := os.Getenv("POST_PROCESS_WEBHOOK")
@@ -69,6 +76,8 @@ func New(args []string) (*Config, error) {
 	fs.StringVar(&config.NtfyDomain, "ntfy-domain", envNtfyDomain, "Choose the ntfy server to interact with")
 	fs.StringVar(&config.NtfyTopic, "ntfy-topic", envNtfyTopic, "Choose the ntfy topic to interact with")
 	fs.StringVar(&config.NtfyAuth, "ntfy-auth", envNtfyAuth, "Specify token for reserved topics")
+	fs.StringVar(&config.NtfyUsername, "ntfy-username", envNtfyUsername, "Username for HTTP Basic auth on reserved topics (mutually exclusive with --ntfy-auth)")
+	fs.StringVar(&config.NtfyPassword, "ntfy-password", envNtfyPassword, "Password for HTTP Basic auth on reserved topics (requires --ntfy-username)")
 	fs.StringVar(&config.SlackWebhookURL, "slack-webhook", envSlackWebhookURL, "Choose the slack webhook url to send messages to")
 	fs.StringVar(&config.PostProcessWebhook, "post-process-webhook", envPostProcessWebhook, "Webhook URL for post-processing messages")
 	fs.StringVar(&config.PostProcessTemplateFile, "post-process-template-file", envPostProcessTemplateFile, "Template file path for post-processing messages")
@@ -123,6 +132,15 @@ func (c *Config) Validate() error {
 	webhookURL, err := url.Parse(c.SlackWebhookURL)
 	if err != nil || webhookURL.Scheme != "https" || webhookURL.Host == "" {
 		return fmt.Errorf("invalid Slack webhook URL format. Must be a valid HTTPS URL")
+	}
+
+	// Validate ntfy authentication options: a bearer token and HTTP Basic
+	// credentials are mutually exclusive, and Basic auth needs both halves.
+	if c.NtfyAuth != "" && (c.NtfyUsername != "" || c.NtfyPassword != "") {
+		return fmt.Errorf("only one ntfy authentication method can be specified: --ntfy-auth or --ntfy-username/--ntfy-password")
+	}
+	if (c.NtfyUsername != "") != (c.NtfyPassword != "") {
+		return fmt.Errorf("--ntfy-username and --ntfy-password must both be specified together")
 	}
 
 	// Validate post-processing options (only one allowed)
@@ -193,6 +211,16 @@ func (c *Config) GetNtfyTopic() string {
 // GetNtfyAuth implements ConfigProvider interface
 func (c *Config) GetNtfyAuth() string {
 	return c.NtfyAuth
+}
+
+// GetNtfyUsername implements ConfigProvider interface
+func (c *Config) GetNtfyUsername() string {
+	return c.NtfyUsername
+}
+
+// GetNtfyPassword implements ConfigProvider interface
+func (c *Config) GetNtfyPassword() string {
+	return c.NtfyPassword
 }
 
 // GetSlackWebhookURL implements ConfigProvider interface

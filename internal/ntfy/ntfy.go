@@ -33,22 +33,29 @@ type Client interface {
 
 // HTTPClient implements Client interface
 type HTTPClient struct {
-	domain string
-	topic  string
-	auth   string
-	client config.HTTPClient
+	domain   string
+	topic    string
+	auth     string
+	username string
+	password string
+	client   config.HTTPClient
 }
 
-// NewClient creates a new ntfy client
-func NewClient(domain, topic, auth string, client config.HTTPClient) *HTTPClient {
+// NewClient creates a new ntfy client. auth is a bearer token; username and
+// password are HTTP Basic credentials. config.Validate rejects setting
+// both, so at most one of (auth) or (username, password) is ever non-empty
+// here -- if both are somehow set anyway, Basic auth takes precedence.
+func NewClient(domain, topic, auth, username, password string, client config.HTTPClient) *HTTPClient {
 	if client == nil {
 		client = &http.Client{}
 	}
 	return &HTTPClient{
-		domain: domain,
-		topic:  topic,
-		auth:   auth,
-		client: client,
+		domain:   domain,
+		topic:    topic,
+		auth:     auth,
+		username: username,
+		password: password,
+		client:   client,
 	}
 }
 
@@ -82,7 +89,9 @@ func (n *HTTPClient) Connect(ctx context.Context, since string) (io.ReadCloser, 
 		return nil, err
 	}
 
-	if n.auth != "" {
+	if n.username != "" {
+		req.SetBasicAuth(n.username, n.password)
+	} else if n.auth != "" {
 		req.Header.Add("Authorization", "Bearer "+n.auth)
 	}
 
