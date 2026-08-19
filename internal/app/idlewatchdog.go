@@ -20,6 +20,12 @@ type IdleWatchdogReader struct {
 	timeout  time.Duration
 	timer    *time.Timer
 	timedOut atomic.Bool
+
+	// OnRead, if set, is called after every successful Read -- in addition
+	// to resetting the idle timer, not instead of it. The health endpoint
+	// (see health.go) uses this to record a sign of forward progress
+	// separately from the idle-timeout/cancel mechanism above.
+	OnRead func()
 }
 
 // NewIdleWatchdogReader creates a watchdog around r. cancel is called at
@@ -40,6 +46,9 @@ func (w *IdleWatchdogReader) Read(p []byte) (int, error) {
 	n, err := w.r.Read(p)
 	if n > 0 {
 		w.timer.Reset(w.timeout)
+		if w.OnRead != nil {
+			w.OnRead()
+		}
 	}
 	return n, err
 }

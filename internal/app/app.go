@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
@@ -24,6 +25,9 @@ type App struct {
 	// it implements one). Empty means connect fresh, receiving only
 	// messages sent from that point on -- the initial state.
 	since string
+	// lastActivity is a UnixNano timestamp of the app's last sign of
+	// forward progress; see recordActivity and Healthy in health.go.
+	lastActivity atomic.Int64
 }
 
 // New creates a new application instance
@@ -89,12 +93,14 @@ func New(cfg config.Provider, version string) *App {
 		ntfyHTTPClient,
 	)
 
-	return &App{
+	app := &App{
 		config:     cfg,
 		ntfyClient: ntfyClient,
 		processor:  msgProcessor,
 		version:    version,
 	}
+	app.recordActivity()
+	return app
 }
 
 // reconnectDelay is how long Run waits before retrying after a connection
@@ -118,6 +124,13 @@ const idleTimeout = 2 * time.Minute
 func (a *App) Run(ctx context.Context) error {
 	for {
 		err := a.runOnce(ctx)
+
+		// A completed cycle -- whether it connected and streamed for a
+		// while, or failed outright -- is itself a sign the loop hasn't
+		// deadlocked. See recordActivity's doc comment for why this and the
+		// idle watchdog's OnRead hook together are what the health endpoint
+		// actually watches.
+		a.recordActivity()
 
 		if ctx.Err() != nil {
 			slog.Info("shutting down", "reason", ctx.Err())
@@ -162,6 +175,7 @@ func (a *App) runOnce(ctx context.Context) error {
 	slog.Info("connected to ntfy", "domain", a.config.GetNtfyDomain(), "topic", a.config.GetNtfyTopic(), "since", a.since)
 
 	watchdog := NewIdleWatchdogReader(reader, idleTimeout, cancel)
+	watchdog.OnRead = a.recordActivity
 	defer watchdog.Stop()
 
 	err = a.processor.ProcessStream(watchdog)

@@ -45,6 +45,7 @@ type MockConfigProvider struct {
 	WebhookTimeoutSeconds    int
 	WebhookRetries           int
 	WebhookMaxResponseSizeMB int
+	HealthAddr               string
 }
 
 func (m *MockConfigProvider) GetNtfyDomain() string              { return m.Domain }
@@ -56,6 +57,7 @@ func (m *MockConfigProvider) GetSlackWebhookURL() string         { return m.Webh
 func (m *MockConfigProvider) GetPostProcessWebhook() string      { return m.PostProcessWebhook }
 func (m *MockConfigProvider) GetPostProcessTemplate() string     { return m.PostProcessTemplate }
 func (m *MockConfigProvider) GetPostProcessTemplateFile() string { return m.PostProcessTemplateFile }
+func (m *MockConfigProvider) GetHealthAddr() string              { return m.HealthAddr }
 func (m *MockConfigProvider) GetWebhookTimeoutSeconds() int      { return m.WebhookTimeoutSeconds }
 func (m *MockConfigProvider) GetWebhookRetries() int             { return m.WebhookRetries }
 func (m *MockConfigProvider) GetWebhookMaxResponseSizeMB() int   { return m.WebhookMaxResponseSizeMB }

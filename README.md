@@ -60,6 +60,27 @@ docker run --env="NTFY_DOMAIN=ntfy.sh" \
            ozskywalker/ntfy-to-slack:latest
 ```
 
+### Health Checks
+
+Setting `--health-addr`/`HEALTH_ADDR` (e.g. `:8080`) serves a `/healthz`
+liveness endpoint: `200 {"status":"ok"}` while the app is making forward
+progress, `503 {"status":"unhealthy"}` if it's gone silent for an unusually
+long time. This reflects the app's own liveness, not ntfy's reachability --
+an ntfy outage the app is already correctly retrying through still reports
+healthy, since restarting the container wouldn't fix an outage it doesn't
+control. Disabled unless set, so existing deployments don't suddenly bind a
+port they didn't ask for.
+
+```bash
+docker run --env="NTFY_TOPIC=your-topic" \
+           --env="SLACK_WEBHOOK_URL=https://hooks.slack.com/your-webhook" \
+           --env="HEALTH_ADDR=:8080" \
+           -p 8080:8080 \
+           --health-cmd="wget -qO- http://localhost:8080/healthz || exit 1" \
+           -d --restart always \
+           ozskywalker/ntfy-to-slack:latest
+```
+
 ### Build from Source
 
 Requires Go 1.26+ to be pre-installed.
@@ -131,6 +152,7 @@ ntfy-to-slack can be configured using either environment variables or command-li
 | `WEBHOOK_RETRIES` | `--webhook-retries` | Number of webhook retries (0-10) | 3 | No |
 | `WEBHOOK_MAX_RESPONSE_SIZE_MB` | `--webhook-max-response-size` | Max webhook response size in MB (1-100) | 1 | No |
 | `LOG_LEVEL`          | -                | Log level (debug/info/warn/error) | info     | No       |
+| `HEALTH_ADDR`        | `--health-addr`  | Address to serve a `/healthz` liveness endpoint on, e.g. `:8080` | - (disabled) | No |
 
 Command-line flags take precedence over environment variables.
 
