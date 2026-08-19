@@ -1,6 +1,7 @@
 package unit_test
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -325,6 +326,62 @@ func TestConfigValidate(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestFlagUsage_ListsEveryFlag guards against the exact kind of drift that
+// motivated generating this text in the first place: New() gained
+// --ntfy-username/--ntfy-password without the (at the time hand-written)
+// help text being updated to match. Every flag New()'s FlagSet defines must
+// show up here, since they now share one definition (buildFlagSet).
+func TestFlagUsage_ListsEveryFlag(t *testing.T) {
+	usage := config.FlagUsage()
+
+	for _, flagName := range []string{
+		"-ntfy-domain",
+		"-ntfy-topic",
+		"-ntfy-auth",
+		"-ntfy-username",
+		"-ntfy-password",
+		"-slack-webhook",
+		"-post-process-webhook",
+		"-post-process-template-file",
+		"-post-process-template",
+		"-webhook-timeout",
+		"-webhook-retries",
+		"-webhook-max-response-size",
+		"-v",
+	} {
+		if !strings.Contains(usage, flagName) {
+			t.Errorf("FlagUsage() is missing %q:\n%s", flagName, usage)
+		}
+	}
+}
+
+// TestFlagUsage_DefaultsMatchNew guards the other half of the drift: not
+// just that a flag is listed, but that the default FlagUsage shows for it
+// is the same value New() would actually use when the flag isn't passed.
+func TestFlagUsage_DefaultsMatchNew(t *testing.T) {
+	oldTimeout, hadTimeout := os.LookupEnv("WEBHOOK_TIMEOUT_SECONDS")
+	os.Unsetenv("WEBHOOK_TIMEOUT_SECONDS")
+	defer func() {
+		if hadTimeout {
+			os.Setenv("WEBHOOK_TIMEOUT_SECONDS", oldTimeout)
+		}
+	}()
+
+	cfg, err := config.New([]string{"--ntfy-topic", "t", "--slack-webhook", "https://hooks.slack.com/x"})
+	if err != nil {
+		t.Fatalf("config.New() error: %v", err)
+	}
+
+	usage := config.FlagUsage()
+
+	if !strings.Contains(usage, `-ntfy-domain string`) || !strings.Contains(usage, `(default "`+cfg.GetNtfyDomain()+`")`) {
+		t.Errorf("FlagUsage() default for -ntfy-domain doesn't match New()'s actual default %q:\n%s", cfg.GetNtfyDomain(), usage)
+	}
+	if !strings.Contains(usage, fmt.Sprintf("(default %d)", cfg.GetWebhookTimeoutSeconds())) {
+		t.Errorf("FlagUsage() default for -webhook-timeout doesn't match New()'s actual default %d:\n%s", cfg.GetWebhookTimeoutSeconds(), usage)
 	}
 }
 

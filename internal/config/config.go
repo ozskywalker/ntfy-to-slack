@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"net/url"
@@ -46,8 +47,14 @@ type Config struct {
 	WebhookMaxResponseSizeMB int
 }
 
-// New creates a new configuration from command line args and environment
-func New(args []string) (*Config, error) {
+// buildFlagSet constructs the flag.FlagSet New() parses with, without
+// parsing any arguments. It's factored out so FlagUsage (and, transitively,
+// PrintHelp in internal/app) can render the exact same flag definitions and
+// defaults New() actually accepts, instead of a hand-maintained copy that
+// can silently drift from reality -- which is exactly what happened in this
+// repo's history when --ntfy-username/--ntfy-password were added to New()
+// without a matching update to the old hand-written help text.
+func buildFlagSet() (*flag.FlagSet, *Config) {
 	config := &Config{}
 
 	// Create a new flag set to avoid global state
@@ -82,11 +89,18 @@ func New(args []string) (*Config, error) {
 	fs.StringVar(&config.PostProcessWebhook, "post-process-webhook", envPostProcessWebhook, "Webhook URL for post-processing messages")
 	fs.StringVar(&config.PostProcessTemplateFile, "post-process-template-file", envPostProcessTemplateFile, "Template file path for post-processing messages")
 	fs.StringVar(&config.PostProcessTemplate, "post-process-template", envPostProcessTemplate, "Inline template for post-processing messages")
-	fs.IntVar(&config.WebhookTimeoutSeconds, "webhook-timeout", envWebhookTimeoutSeconds, "Webhook timeout in seconds (default: 30)")
-	fs.IntVar(&config.WebhookRetries, "webhook-retries", envWebhookRetries, "Number of webhook retries (default: 3)")
-	fs.IntVar(&config.WebhookMaxResponseSizeMB, "webhook-max-response-size", envWebhookMaxResponseSizeMB, "Maximum webhook response size in MB (default: 1)")
+	fs.IntVar(&config.WebhookTimeoutSeconds, "webhook-timeout", envWebhookTimeoutSeconds, "Webhook timeout in seconds")
+	fs.IntVar(&config.WebhookRetries, "webhook-retries", envWebhookRetries, "Number of webhook retries")
+	fs.IntVar(&config.WebhookMaxResponseSizeMB, "webhook-max-response-size", envWebhookMaxResponseSizeMB, "Maximum webhook response size in MB")
 	fs.BoolVar(&config.ShowVersion, "v", false, "prints current ntfy-to-slack version")
 	config.LogLevel = envLogLevel
+
+	return fs, config
+}
+
+// New creates a new configuration from command line args and environment
+func New(args []string) (*Config, error) {
+	fs, config := buildFlagSet()
 
 	// Parse arguments
 	err := fs.Parse(args)
@@ -94,12 +108,27 @@ func New(args []string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse flags: %w", err)
 	}
 
-	// Check for help request (no args and no required env vars)
-	if len(args) == 0 && envNtfyTopic == "" && envSlackWebhookURL == "" {
+	// Check for help request (no args and no required env vars). Re-reading
+	// the env vars here rather than reusing config's already-parsed values
+	// keeps this an environment check specifically, independent of whatever
+	// flags ended up doing to config.
+	if len(args) == 0 && os.Getenv("NTFY_TOPIC") == "" && os.Getenv("SLACK_WEBHOOK_URL") == "" {
 		config.ShowHelp = true
 	}
 
 	return config, nil
+}
+
+// FlagUsage returns formatted, one-line-per-flag help text for every flag
+// New accepts -- generated from the same FlagSet New() actually parses with
+// (see buildFlagSet), so it can't describe a flag that doesn't exist or
+// omit one that does.
+func FlagUsage() string {
+	fs, _ := buildFlagSet()
+	var buf bytes.Buffer
+	fs.SetOutput(&buf)
+	fs.PrintDefaults()
+	return buf.String()
 }
 
 // Validate validates the configuration
