@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"net"
 	"net/url"
 	"os"
 	"regexp"
@@ -24,6 +25,7 @@ type Provider interface {
 	GetWebhookTimeoutSeconds() int
 	GetWebhookRetries() int
 	GetWebhookMaxResponseSizeMB() int
+	GetHealthAddr() string
 	Validate() error
 }
 
@@ -45,6 +47,11 @@ type Config struct {
 	WebhookTimeoutSeconds    int
 	WebhookRetries           int
 	WebhookMaxResponseSizeMB int
+
+	// HealthAddr, if non-empty, is the address (e.g. ":8080") to serve a
+	// /healthz liveness endpoint on. Empty disables it -- opt-in, so
+	// existing deployments don't suddenly bind a port they didn't ask for.
+	HealthAddr string
 }
 
 // buildFlagSet constructs the flag.FlagSet New() parses with, without
@@ -74,6 +81,7 @@ func buildFlagSet() (*flag.FlagSet, *Config) {
 	envWebhookTimeoutSeconds := getEnvIntOrDefault("WEBHOOK_TIMEOUT_SECONDS", 30)
 	envWebhookRetries := getEnvIntOrDefault("WEBHOOK_RETRIES", 3)
 	envWebhookMaxResponseSizeMB := getEnvIntOrDefault("WEBHOOK_MAX_RESPONSE_SIZE_MB", 1)
+	envHealthAddr := os.Getenv("HEALTH_ADDR")
 
 	// Define flags. Each flag's default is the environment-derived value
 	// above, exactly like the string flags: flag.*Var only overwrites the
@@ -92,6 +100,7 @@ func buildFlagSet() (*flag.FlagSet, *Config) {
 	fs.IntVar(&config.WebhookTimeoutSeconds, "webhook-timeout", envWebhookTimeoutSeconds, "Webhook timeout in seconds")
 	fs.IntVar(&config.WebhookRetries, "webhook-retries", envWebhookRetries, "Number of webhook retries")
 	fs.IntVar(&config.WebhookMaxResponseSizeMB, "webhook-max-response-size", envWebhookMaxResponseSizeMB, "Maximum webhook response size in MB")
+	fs.StringVar(&config.HealthAddr, "health-addr", envHealthAddr, "Address to serve a /healthz liveness endpoint on, e.g. \":8080\" (disabled if unset)")
 	fs.BoolVar(&config.ShowVersion, "v", false, "prints current ntfy-to-slack version")
 	config.LogLevel = envLogLevel
 
@@ -224,6 +233,16 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	// Validate the health endpoint address, if configured, so a typo (e.g.
+	// a bare port number missing its leading colon) is caught at startup
+	// instead of surfacing as an obscure listen error once the app is
+	// already running.
+	if c.HealthAddr != "" {
+		if _, _, err := net.SplitHostPort(c.HealthAddr); err != nil {
+			return fmt.Errorf("invalid health endpoint address %q: %w", c.HealthAddr, err)
+		}
+	}
+
 	return nil
 }
 
@@ -285,6 +304,11 @@ func (c *Config) GetWebhookRetries() int {
 // GetWebhookMaxResponseSizeMB implements ConfigProvider interface
 func (c *Config) GetWebhookMaxResponseSizeMB() int {
 	return c.WebhookMaxResponseSizeMB
+}
+
+// GetHealthAddr implements ConfigProvider interface
+func (c *Config) GetHealthAddr() string {
+	return c.HealthAddr
 }
 
 // getEnvOrDefault returns environment variable value or default if not set

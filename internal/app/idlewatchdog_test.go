@@ -85,6 +85,46 @@ func TestIdleWatchdogReader_DataResetsTheTimer(t *testing.T) {
 	}
 }
 
+func TestIdleWatchdogReader_OnReadCalledOnEverySuccessfulRead(t *testing.T) {
+	underlying := &blockingReader{unblock: make(chan struct{}, 3), data: []byte("x")}
+
+	w := app.NewIdleWatchdogReader(underlying, time.Second, func() {})
+	defer w.Stop()
+
+	var onReadCalls int
+	w.OnRead = func() { onReadCalls++ }
+
+	for i := 0; i < 3; i++ {
+		underlying.unblock <- struct{}{}
+		if _, err := w.Read(make([]byte, 1)); err != nil {
+			t.Fatalf("Read() error = %v", err)
+		}
+	}
+
+	if onReadCalls != 3 {
+		t.Errorf("OnRead called %d times, want 3", onReadCalls)
+	}
+}
+
+func TestIdleWatchdogReader_OnReadNotCalledOnError(t *testing.T) {
+	underlying := &blockingReader{unblock: make(chan struct{}, 1), err: errors.New("boom")}
+	underlying.unblock <- struct{}{}
+
+	w := app.NewIdleWatchdogReader(underlying, time.Second, func() {})
+	defer w.Stop()
+
+	var onReadCalls int
+	w.OnRead = func() { onReadCalls++ }
+
+	if _, err := w.Read(make([]byte, 1)); err == nil {
+		t.Fatal("expected the underlying error to propagate")
+	}
+
+	if onReadCalls != 0 {
+		t.Errorf("OnRead called %d times on a failed Read, want 0", onReadCalls)
+	}
+}
+
 func TestIdleWatchdogReader_StopDisarmsTheTimer(t *testing.T) {
 	underlying := &blockingReader{unblock: make(chan struct{})}
 	defer close(underlying.unblock)

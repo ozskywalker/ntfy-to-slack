@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/app"
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
@@ -52,11 +54,39 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
+	if addr := cfg.GetHealthAddr(); addr != "" {
+		healthServer := startHealthServer(addr, application.HealthHandler())
+		defer func() {
+			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			if err := healthServer.Shutdown(shutdownCtx); err != nil {
+				slog.Error("health endpoint shutdown error", "err", err)
+			}
+		}()
+	}
+
 	// Run application
 	if err := application.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		slog.Error("application error", "err", err)
 		os.Exit(1)
 	}
+}
+
+// startHealthServer starts the /healthz liveness endpoint in the
+// background and returns the server so the caller can shut it down.
+func startHealthServer(addr string, handler http.Handler) *http.Server {
+	mux := http.NewServeMux()
+	mux.Handle("/healthz", handler)
+	server := &http.Server{Addr: addr, Handler: mux}
+
+	go func() {
+		slog.Info("health endpoint listening", "addr", addr)
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("health endpoint error", "err", err)
+		}
+	}()
+
+	return server
 }
 
 // setupLogging configures the application logging. An unrecognized level

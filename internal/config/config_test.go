@@ -275,6 +275,36 @@ func TestConfigValidate(t *testing.T) {
 			errMsg:  "must both be specified together",
 		},
 		{
+			name: "health addr disabled by default is valid",
+			config: &config.Config{
+				NtfyDomain:      "ntfy.sh",
+				NtfyTopic:       "test-topic",
+				SlackWebhookURL: "https://hooks.slack.com/test",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid health addr",
+			config: &config.Config{
+				NtfyDomain:      "ntfy.sh",
+				NtfyTopic:       "test-topic",
+				SlackWebhookURL: "https://hooks.slack.com/test",
+				HealthAddr:      ":8080",
+			},
+			wantErr: false,
+		},
+		{
+			name: "health addr missing leading colon is rejected",
+			config: &config.Config{
+				NtfyDomain:      "ntfy.sh",
+				NtfyTopic:       "test-topic",
+				SlackWebhookURL: "https://hooks.slack.com/test",
+				HealthAddr:      "8080",
+			},
+			wantErr: true,
+			errMsg:  "invalid health endpoint address",
+		},
+		{
 			name: "valid inline template",
 			config: &config.Config{
 				NtfyDomain:          "ntfy.sh",
@@ -350,6 +380,7 @@ func TestFlagUsage_ListsEveryFlag(t *testing.T) {
 		"-webhook-timeout",
 		"-webhook-retries",
 		"-webhook-max-response-size",
+		"-health-addr",
 		"-v",
 	} {
 		if !strings.Contains(usage, flagName) {
