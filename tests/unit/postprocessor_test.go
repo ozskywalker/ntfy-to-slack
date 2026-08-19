@@ -241,6 +241,7 @@ func TestWebhookPostProcessor_Process(t *testing.T) {
 		mockResponse  *http.Response
 		mockError     error
 		expectedText  string
+		wantMrkdwn    *bool
 		shouldError   bool
 		errorContains string
 	}{
@@ -255,6 +256,19 @@ func TestWebhookPostProcessor_Process(t *testing.T) {
 				Body:       io.NopCloser(strings.NewReader(`{"text": "Formatted: Test - Test message"}`)),
 			},
 			expectedText: "Formatted: Test - Test message",
+		},
+		{
+			name: "successful JSON response with mrkdwn disabled",
+			message: &config.NtfyMessage{
+				Title:   "Test",
+				Message: "Test message",
+			},
+			mockResponse: &http.Response{
+				StatusCode: 200,
+				Body:       io.NopCloser(strings.NewReader(`{"text": "Raw text", "mrkdwn": false}`)),
+			},
+			expectedText: "Raw text",
+			wantMrkdwn:   boolPtr(false),
 		},
 		{
 			name: "successful plain text response",
@@ -342,6 +356,14 @@ func TestWebhookPostProcessor_Process(t *testing.T) {
 
 			if result.Text != tt.expectedText {
 				t.Errorf("Expected text %q, got %q", tt.expectedText, result.Text)
+			}
+
+			if tt.wantMrkdwn != nil {
+				if result.Mrkdwn == nil {
+					t.Errorf("Expected mrkdwn %v, got absent", *tt.wantMrkdwn)
+				} else if *result.Mrkdwn != *tt.wantMrkdwn {
+					t.Errorf("Expected mrkdwn %v, got %v", *tt.wantMrkdwn, *result.Mrkdwn)
+				}
 			}
 		})
 	}

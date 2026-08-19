@@ -81,7 +81,7 @@ For more details on Mustache templates, check out [the Mustache playground & doc
 
 **In-line template formatting:**
 ```bash
-./ntfy-to-slack --ntfy-topic alerts --slack-webhook https://hooks.slack.com/... --post-process-template "🚨 **{{.Title}}** Alert\n📄{{.Message}}\n⏰ Time: {{.Time}}"
+./ntfy-to-slack --ntfy-topic alerts --slack-webhook https://hooks.slack.com/... --post-process-template "🚨 *{{.Title}}* Alert\n📄{{.Message}}\n⏰ Time: {{.Time}}"
 ```
 
 **Webhook integration with N8N:**
@@ -126,7 +126,7 @@ Command-line flags take precedence over environment variables.
 **With in-line template formatting:**
 ```bash
 ./ntfy-to-slack --ntfy-topic alerts --slack-webhook https://hooks.slack.com/... \
-  --post-process-template "🚨 **{{.Title}}** Alert\n📄 {{.Message}}\n⏰ Time: {{.Time}}"
+  --post-process-template "🚨 *{{.Title}}* Alert\n📄 {{.Message}}\n⏰ Time: {{.Time}}"
 ```
 
 **With template file for complex formatting:**

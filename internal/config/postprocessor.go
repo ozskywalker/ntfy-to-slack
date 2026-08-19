@@ -31,6 +31,10 @@ type NtfyMessage struct {
 // SlackMessage represents a message to send to Slack
 type SlackMessage struct {
 	Text string `json:"text"`
+	// Mrkdwn controls whether the Text field is rendered as Slack mrkdwn.
+	// A nil value (absent from JSON) lets the Slack sender apply its default
+	// of enabling mrkdwn, while an explicit false opts out.
+	Mrkdwn *bool `json:"mrkdwn,omitempty"`
 }
 
 // PostProcessor defines the interface for message post-processing

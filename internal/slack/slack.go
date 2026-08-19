@@ -38,7 +38,16 @@ func (s *Sender) Send(message *config.SlackMessage) error {
 		return errors.New("message is nil")
 	}
 
-	jsonBytes, err := json.Marshal(message)
+	// Default to rendering Text as Slack mrkdwn unless an explicit value is
+	// provided by the message (e.g. a webhook post-processor opting out).
+	mrkdwn := true
+	if message.Mrkdwn != nil {
+		mrkdwn = *message.Mrkdwn
+	}
+	sendMsg := *message
+	sendMsg.Mrkdwn = &mrkdwn
+
+	jsonBytes, err := json.Marshal(sendMsg)
 	if err != nil {
 		return err
 	}

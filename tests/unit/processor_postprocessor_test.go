@@ -55,7 +55,7 @@ func TestMessageProcessor_ProcessWithPostProcessor(t *testing.T) {
 				Title:   "Alert",
 				Message: "System down",
 			},
-			expectedSlackText:   "**Alert**: System down",
+			expectedSlackText:   "*Alert*: System down",
 			postProcessorCalled: true,
 			shouldUseDefault:    true,
 		},
@@ -146,7 +146,7 @@ func TestMessageProcessor_createDefaultMessage(t *testing.T) {
 					Title:   "Alert",
 					Message: "System issue",
 				},
-				expectedText: "**Alert**: System issue",
+				expectedText: "*Alert*: System issue",
 			},
 			{
 				name: "message without title",

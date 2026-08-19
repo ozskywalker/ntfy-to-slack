@@ -36,7 +36,7 @@ func TestMessageProcessor_ProcessStream(t *testing.T) {
 {"event":"keepalive","topic":"test"}
 {"id":"msg2","time":1640995201,"event":"message","topic":"test","title":"","message":"Simple message"}`,
 			expectedMessages: []config.SlackMessage{
-				{Text: "**Hello**: World"},
+				{Text: "*Hello*: World"},
 				{Text: "Simple message"},
 			},
 			wantErr: false,

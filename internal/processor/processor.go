@@ -91,7 +91,7 @@ func (p *MessageProcessor) handleMessageEvent(msg *config.NtfyMessage) error {
 func (p *MessageProcessor) createDefaultMessage(msg *config.NtfyMessage) *config.SlackMessage {
 	if msg.Title != "" {
 		return &config.SlackMessage{
-			Text: "**" + msg.Title + "**: " + msg.Message,
+			Text: "*" + msg.Title + "*: " + msg.Message,
 		}
 	}
 	return &config.SlackMessage{

@@ -1,7 +1,9 @@
 package unit_test
 
 import (
+	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,6 +12,11 @@ import (
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
 	"github.com/ozskywalker/ntfy-to-slack/internal/slack"
 )
+
+// boolPtr returns a pointer to the given boolean value.
+func boolPtr(v bool) *bool {
+	return &v
+}
 
 func TestNewSlackSender(t *testing.T) {
 	tests := []struct {
@@ -54,6 +61,7 @@ func TestSlackSender_Send(t *testing.T) {
 		mockError    error
 		wantErr      bool
 		validateReq  bool
+		wantMrkdwn   *bool
 	}{
 		{
 			name:    "successful send",
@@ -64,6 +72,18 @@ func TestSlackSender_Send(t *testing.T) {
 			},
 			wantErr:     false,
 			validateReq: true,
+			wantMrkdwn:  boolPtr(true),
+		},
+		{
+			name:    "successful send with mrkdwn explicitly disabled",
+			message: &config.SlackMessage{Text: "test message", Mrkdwn: boolPtr(false)},
+			mockResponse: &http.Response{
+				StatusCode: http.StatusOK,
+				Body:       http.NoBody,
+			},
+			wantErr:     false,
+			validateReq: true,
+			wantMrkdwn:  boolPtr(false),
 		},
 		{
 			name:    "nil message",
@@ -126,6 +146,29 @@ func TestSlackSender_Send(t *testing.T) {
 				}
 				if capturedReq.URL.String() != "https://hooks.slack.com/test" {
 					t.Errorf("Expected URL https://hooks.slack.com/test, got %s", capturedReq.URL.String())
+				}
+
+				// Verify the JSON payload, including the mrkdwn field.
+				body, err := io.ReadAll(capturedReq.Body)
+				if err != nil {
+					t.Errorf("Failed to read request body: %v", err)
+				}
+				var payload struct {
+					Text   string `json:"text"`
+					Mrkdwn *bool  `json:"mrkdwn"`
+				}
+				if err := json.Unmarshal(body, &payload); err != nil {
+					t.Errorf("Failed to unmarshal request body %q: %v", string(body), err)
+				}
+				if payload.Text != tt.message.Text {
+					t.Errorf("Expected payload text %q, got %q", tt.message.Text, payload.Text)
+				}
+				if tt.wantMrkdwn != nil {
+					if payload.Mrkdwn == nil {
+						t.Errorf("Expected mrkdwn %v in payload, got absent", *tt.wantMrkdwn)
+					} else if *payload.Mrkdwn != *tt.wantMrkdwn {
+						t.Errorf("Expected mrkdwn %v, got %v", *tt.wantMrkdwn, *payload.Mrkdwn)
+					}
 				}
 			}
 		})
