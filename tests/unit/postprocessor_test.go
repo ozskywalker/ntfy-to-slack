@@ -168,6 +168,15 @@ func TestTemplatePostProcessor_Process(t *testing.T) {
 			},
 			expectedText: "🚨 **Critical Alert**\nService unavailable",
 		},
+		{
+			// Slack rejects a message with no text (the "no_text" error), so
+			// a template that renders to nothing but whitespace is a
+			// processing failure, not a message with empty text.
+			name:        "empty output is rejected, not silently forwarded",
+			template:    "{{if .Title}}{{.Title}}{{end}}",
+			message:     &config.NtfyMessage{Title: "", Message: "ignored"},
+			shouldError: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -320,8 +329,11 @@ func TestWebhookPostProcessor_Process(t *testing.T) {
 						t.Errorf("Expected Content-Type application/json, got %s", req.Header.Get("Content-Type"))
 					}
 
-					if req.Header.Get("User-Agent") != "ntfy-to-slack/2.0" {
-						t.Errorf("Expected User-Agent ntfy-to-slack/2.0, got %s", req.Header.Get("User-Agent"))
+					// The version segment is whatever ldflags stamped in (or
+					// "development" outside a release build), so just check
+					// the prefix rather than pinning an exact version.
+					if !strings.HasPrefix(req.Header.Get("User-Agent"), "ntfy-to-slack/") {
+						t.Errorf("Expected User-Agent to start with ntfy-to-slack/, got %s", req.Header.Get("User-Agent"))
 					}
 
 					if tt.mockError != nil {

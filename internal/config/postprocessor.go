@@ -9,8 +9,11 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strings"
 	"text/template"
 	"time"
+
+	"github.com/ozskywalker/ntfy-to-slack/internal/version"
 )
 
 // HTTPClient interface for HTTP operations
@@ -110,6 +113,14 @@ func (m *TemplatePostProcessor) Process(message *NtfyMessage) (*SlackMessage, er
 		return nil, fmt.Errorf("failed to execute template: %w", err)
 	}
 
+	// Slack rejects a message with no text (the "no_text" error), so treat
+	// blank output the same as any other post-processing failure: return an
+	// error and let the caller fall back to default formatting instead of
+	// silently sending something Slack will reject.
+	if strings.TrimSpace(buf.String()) == "" {
+		return nil, fmt.Errorf("template produced empty output")
+	}
+
 	return &SlackMessage{
 		Text: buf.String(),
 	}, nil
@@ -180,7 +191,7 @@ func (w *WebhookPostProcessor) Process(message *NtfyMessage) (*SlackMessage, err
 		}
 
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("User-Agent", "ntfy-to-slack/2.0")
+		req.Header.Set("User-Agent", "ntfy-to-slack/"+version.Get().Version)
 
 		// Make the request
 		resp, err := w.client.Do(req)
@@ -230,6 +241,15 @@ func (w *WebhookPostProcessor) Process(message *NtfyMessage) (*SlackMessage, err
 			// If it fails, treat the response as plain text
 			slackMsg.Text = string(body)
 			slog.Debug("webhook response treated as plain text", "response", string(body))
+		}
+
+		// Slack rejects a message with no text (the "no_text" error). This is
+		// a malformed response, not a transient failure -- retrying the same
+		// webhook with the same input won't produce different content -- so
+		// report it the same way a parse failure is reported above, rather
+		// than retrying or silently sending something Slack will reject.
+		if strings.TrimSpace(slackMsg.Text) == "" {
+			return nil, fmt.Errorf("webhook post-processing failed (%s): response produced an empty Slack message text", w.webhookURL)
 		}
 
 		slog.Debug("webhook request successful", "attempt", attempt+1, "response_size", len(body))

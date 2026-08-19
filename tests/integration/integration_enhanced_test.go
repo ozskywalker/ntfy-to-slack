@@ -466,6 +466,7 @@ func TestWebhookPostProcessor_MalformedResponse(t *testing.T) {
 		response     string
 		contentType  string
 		expectedText string
+		wantErr      bool
 	}{
 		{
 			name:         "valid JSON response",
@@ -486,10 +487,13 @@ func TestWebhookPostProcessor_MalformedResponse(t *testing.T) {
 			expectedText: "Plain text message",
 		},
 		{
-			name:         "empty response",
-			response:     "",
-			contentType:  "application/json",
-			expectedText: "",
+			// Slack rejects a message with no text (the "no_text" error), so
+			// an empty response is a processing failure, not a message with
+			// empty text -- the caller falls back to default formatting.
+			name:        "empty response is rejected, not silently forwarded",
+			response:    "",
+			contentType: "application/json",
+			wantErr:     true,
 		},
 		{
 			name:         "HTML response",
@@ -515,6 +519,13 @@ func TestWebhookPostProcessor_MalformedResponse(t *testing.T) {
 			}
 
 			result, err := processor.Process(message)
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+				return
+			}
 
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
