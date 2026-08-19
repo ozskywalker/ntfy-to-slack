@@ -59,18 +59,21 @@ func main() {
 	}
 }
 
-// setupLogging configures the application logging
+// setupLogging configures the application logging. An unrecognized level
+// defaults to info but is reported, rather than silently accepted -- a
+// typo'd LOG_LEVEL should be visible, not just quietly ignored.
 func setupLogging(logLevel string) {
-	var level slog.Level
 	switch logLevel {
+	case "", "info":
+		slog.SetLogLoggerLevel(slog.LevelInfo)
 	case "debug":
-		level = slog.LevelDebug
+		slog.SetLogLoggerLevel(slog.LevelDebug)
 	case "warn":
-		level = slog.LevelWarn
+		slog.SetLogLoggerLevel(slog.LevelWarn)
 	case "error":
-		level = slog.LevelError
+		slog.SetLogLoggerLevel(slog.LevelError)
 	default:
-		level = slog.LevelInfo
+		slog.SetLogLoggerLevel(slog.LevelInfo)
+		slog.Warn("invalid LOG_LEVEL, defaulting to info", "log_level", logLevel)
 	}
-	slog.SetLogLoggerLevel(level)
 }
