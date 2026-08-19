@@ -217,6 +217,38 @@ func TestConfigValidate(t *testing.T) {
 			wantErr: true,
 			errMsg:  "invalid Slack webhook URL format",
 		},
+		{
+			name: "valid inline template",
+			config: &config.Config{
+				NtfyDomain:          "ntfy.sh",
+				NtfyTopic:           "test-topic",
+				SlackWebhookURL:     "https://hooks.slack.com/test",
+				PostProcessTemplate: "{{.Title}}: {{.Message}}",
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid inline template syntax rejected at validation time",
+			config: &config.Config{
+				NtfyDomain:          "ntfy.sh",
+				NtfyTopic:           "test-topic",
+				SlackWebhookURL:     "https://hooks.slack.com/test",
+				PostProcessTemplate: "{{.Title",
+			},
+			wantErr: true,
+			errMsg:  "invalid post-process template",
+		},
+		{
+			name: "non-existent template file rejected at validation time",
+			config: &config.Config{
+				NtfyDomain:              "ntfy.sh",
+				NtfyTopic:               "test-topic",
+				SlackWebhookURL:         "https://hooks.slack.com/test",
+				PostProcessTemplateFile: "/nonexistent/path/template.tmpl",
+			},
+			wantErr: true,
+			errMsg:  "invalid post-process template file",
+		},
 	}
 
 	for _, tt := range tests {

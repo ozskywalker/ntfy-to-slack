@@ -24,23 +24,25 @@ func main() {
 		os.Exit(0)
 	}
 
-	// Create application
-	application := app.New(cfg, version.Get().String())
-
 	// Handle help flag
 	if cfg.ShowHelp {
-		application.PrintHelp()
+		app.New(cfg, version.Get().String()).PrintHelp()
 		os.Exit(1)
 	}
 
 	// Setup logging
 	setupLogging(cfg.LogLevel)
 
-	// Validate configuration
+	// Validate configuration before constructing the application from it, so
+	// e.g. a malformed post-process template is rejected at startup instead
+	// of being silently swapped for default formatting once running.
 	if err := cfg.Validate(); err != nil {
 		fmt.Fprintf(os.Stderr, "Configuration error: %v\n", err)
 		os.Exit(1)
 	}
+
+	// Create application
+	application := app.New(cfg, version.Get().String())
 
 	// Run application
 	if err := application.Run(); err != nil {
