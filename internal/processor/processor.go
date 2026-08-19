@@ -68,23 +68,23 @@ func (p *MessageProcessor) processMessage(msg *config.NtfyMessage) error {
 
 // handleMessageEvent handles ntfy message events
 func (p *MessageProcessor) handleMessageEvent(msg *config.NtfyMessage) error {
-	slog.Info("sending message", "title", msg.Title, "message", msg.Message)
-
-	var slackMsg *config.SlackMessage
-	var err error
+	slog.Info("received message from ntfy", "title", msg.Title, "message", msg.Message)
 
 	// Use post-processor if available
 	if p.postProcessor != nil {
-		slackMsg, err = p.postProcessor.Process(msg)
+		slog.Info("sending message to post-processor")
+		slackMsg, err := p.postProcessor.Process(msg)
 		if err != nil {
-			slog.Warn("post-processing failed, using default format", "err", err)
-			slackMsg = p.createDefaultMessage(msg)
+			slog.Warn("post-processing failed, using default format", "err", err, "title", msg.Title)
+			return p.sender.Send(p.createDefaultMessage(msg))
 		}
-	} else {
-		slackMsg = p.createDefaultMessage(msg)
+		slog.Info("post-processing complete, sending to Slack")
+		slog.Debug("post-processed message", "text", slackMsg.Text)
+		return p.sender.Send(slackMsg)
 	}
 
-	return p.sender.Send(slackMsg)
+	slog.Info("sending message to Slack", "title", msg.Title)
+	return p.sender.Send(p.createDefaultMessage(msg))
 }
 
 // createDefaultMessage creates a default slack message format
