@@ -80,6 +80,23 @@ go build -v ./cmd/ntfy-to-slack
 
 Templates use standard Go [`text/template`](https://pkg.go.dev/text/template) syntax (`{{.Title}}`, `{{.Message}}`, `{{if}}`, `{{range}}`, ...), not Mustache — despite the similar `{{ }}` delimiters, the two template languages are not compatible.
 
+Templates and webhook payloads receive the full ntfy message, matching [ntfy's own JSON format](https://docs.ntfy.sh/subscribe/api/#json-message-format):
+
+| Field        | Type            | Notes                                                       |
+|--------------|-----------------|--------------------------------------------------------------|
+| `Id`         | string          |                                                                |
+| `Time`       | int64           | Unix timestamp                                                |
+| `Expires`    | int64           | Unix timestamp; 0 if the message doesn't expire               |
+| `Event`      | string          | `open`, `keepalive`, or `message`                              |
+| `Topic`      | string          |                                                                |
+| `Title`      | string          |                                                                |
+| `Message`    | string          |                                                                |
+| `Priority`   | int             | 1 (min) to 5 (max); 0 if unset (ntfy's default priority is 3) |
+| `Tags`       | []string        |                                                                |
+| `Click`      | string          | URL opened when the notification is clicked                   |
+| `Actions`    | []NtfyAction    | `{{range .Actions}}{{.Label}}: {{.URL}}{{end}}`                |
+| `Attachment` | *NtfyAttachment | `{{if .Attachment}}{{.Attachment.Name}}: {{.Attachment.URL}}{{end}}` |
+
 **In-line template formatting:**
 ```bash
 ./ntfy-to-slack --ntfy-topic alerts --slack-webhook https://hooks.slack.com/... --post-process-template "🚨 *{{.Title}}* Alert\n📄{{.Message}}\n⏰ Time: {{.Time}}"

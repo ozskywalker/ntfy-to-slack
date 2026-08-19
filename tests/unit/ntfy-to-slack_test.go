@@ -2,6 +2,7 @@ package unit_test
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
@@ -183,6 +184,41 @@ func TestNtfyMessageUnmarshaling(t *testing.T) {
 			jsonInput:   `{"invalid json`,
 			shouldError: true,
 		},
+		{
+			name: "message with priority, tags, click, attachment and actions",
+			jsonInput: `{
+				"id":"abc123","time":1640995200,"expires":1640998800,
+				"event":"message","topic":"test","title":"Hello","message":"World",
+				"priority":5,
+				"tags":["warning","skull"],
+				"click":"https://example.com",
+				"attachment":{"name":"file.jpg","url":"https://example.com/file.jpg","type":"image/jpeg","size":1234,"expires":1640998800},
+				"actions":[{"id":"1","action":"view","label":"Open","url":"https://example.com","clear":true}]
+			}`,
+			expected: config.NtfyMessage{
+				Id:       "abc123",
+				Time:     1640995200,
+				Expires:  1640998800,
+				Event:    "message",
+				Topic:    "test",
+				Title:    "Hello",
+				Message:  "World",
+				Priority: 5,
+				Tags:     []string{"warning", "skull"},
+				Click:    "https://example.com",
+				Attachment: &config.NtfyAttachment{
+					Name:    "file.jpg",
+					URL:     "https://example.com/file.jpg",
+					Type:    "image/jpeg",
+					Size:    1234,
+					Expires: 1640998800,
+				},
+				Actions: []config.NtfyAction{
+					{Id: "1", Action: "view", Label: "Open", URL: "https://example.com", Clear: true},
+				},
+			},
+			shouldError: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -202,7 +238,7 @@ func TestNtfyMessageUnmarshaling(t *testing.T) {
 				return
 			}
 
-			if msg != tt.expected {
+			if !reflect.DeepEqual(msg, tt.expected) {
 				t.Errorf("Expected %+v, got %+v", tt.expected, msg)
 			}
 		})

@@ -177,6 +177,22 @@ func TestTemplatePostProcessor_Process(t *testing.T) {
 			message:     &config.NtfyMessage{Title: "", Message: "ignored"},
 			shouldError: true,
 		},
+		{
+			name:     "template references priority, tags, click and attachment",
+			template: "P{{.Priority}} [{{range $i, $t := .Tags}}{{if $i}},{{end}}{{$t}}{{end}}] {{.Title}}: {{.Message}} <{{.Click}}> {{if .Attachment}}({{.Attachment.Name}}){{end}}",
+			message: &config.NtfyMessage{
+				Title:    "Alert",
+				Message:  "Disk full",
+				Priority: 5,
+				Tags:     []string{"warning", "skull"},
+				Click:    "https://example.com",
+				Attachment: &config.NtfyAttachment{
+					Name: "report.pdf",
+					URL:  "https://example.com/report.pdf",
+				},
+			},
+			expectedText: "P5 [warning,skull] Alert: Disk full <https://example.com> (report.pdf)",
+		},
 	}
 
 	for _, tt := range tests {
