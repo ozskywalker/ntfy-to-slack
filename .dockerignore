@@ -1,0 +1,10 @@
+# Keep .git available to the build stage (Dockerfile uses `git describe` to
+# stamp the version into the binary) but drop everything else that isn't
+# needed to build ntfy-to-slack.
+ntfy-to-slack
+*.test
+coverage.out
+coverage.html
+.vscode
+.githooks
+.github
