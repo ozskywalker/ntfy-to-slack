@@ -69,6 +69,27 @@ type SlackMessage struct {
 	// A nil value (absent from JSON) lets the Slack sender apply its default
 	// of enabling mrkdwn, while an explicit false opts out.
 	Mrkdwn *bool `json:"mrkdwn,omitempty"`
+	// Blocks carries a Slack Block Kit layout
+	// (https://api.slack.com/block-kit) straight through to the Slack
+	// webhook, verbatim, as raw JSON: ntfy-to-slack doesn't parse,
+	// validate, or generate it. Only a webhook post-processor can populate
+	// this today (its response is unmarshaled directly into a
+	// SlackMessage, so a "blocks" field in that JSON lands here
+	// automatically); Go templates produce plain text, not structured
+	// JSON, so TemplatePostProcessor never sets it. When present, Text is
+	// Slack's required fallback/notification-preview text rather than the
+	// primary content, and may be empty.
+	//
+	// The webhook that returns this is already a fully-trusted,
+	// operator-configured component -- Text has always been forwarded to
+	// Slack unsanitized -- so this doesn't cross a new trust boundary, but
+	// it does widen what a compromised or misbehaving webhook can put in
+	// front of users: Block Kit supports interactive buttons and images
+	// with attacker-choosable URLs, a richer surface than a text link.
+	// Malformed JSON here is rejected by Slack's own API (a 400, which the
+	// Slack sender's retry logic already treats as non-retryable and
+	// reports) rather than anything ntfy-to-slack validates itself.
+	Blocks json.RawMessage `json:"blocks,omitempty"`
 }
 
 // PostProcessor defines the interface for message post-processing
@@ -274,13 +295,16 @@ func (w *WebhookPostProcessor) Process(message *NtfyMessage) (*SlackMessage, err
 			slog.Debug("webhook response treated as plain text", "response", string(body))
 		}
 
-		// Slack rejects a message with no text (the "no_text" error). This is
-		// a malformed response, not a transient failure -- retrying the same
-		// webhook with the same input won't produce different content -- so
-		// report it the same way a parse failure is reported above, rather
-		// than retrying or silently sending something Slack will reject.
-		if strings.TrimSpace(slackMsg.Text) == "" {
-			return nil, fmt.Errorf("webhook post-processing failed (%s): response produced an empty Slack message text", w.webhookURL)
+		// Slack requires either text or blocks (the "no_text" error covers a
+		// message with neither); a Blocks-only response, with Text left as
+		// Slack's fallback/notification-preview string, is valid on its
+		// own. A response with neither is a malformed response, not a
+		// transient failure -- retrying the same webhook with the same
+		// input won't produce different content -- so report it the same
+		// way a parse failure is reported above, rather than retrying or
+		// silently sending something Slack will reject.
+		if strings.TrimSpace(slackMsg.Text) == "" && len(slackMsg.Blocks) == 0 {
+			return nil, fmt.Errorf("webhook post-processing failed (%s): response produced neither text nor blocks", w.webhookURL)
 		}
 
 		slog.Debug("webhook request successful", "attempt", attempt+1, "response_size", len(body))

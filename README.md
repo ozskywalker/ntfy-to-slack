@@ -128,6 +128,25 @@ Templates and webhook payloads receive the full ntfy message, matching [ntfy's o
 ./ntfy-to-slack --ntfy-topic monitoring --slack-webhook https://hooks.slack.com/... --post-process-webhook https://n8n.yourcompany.com/webhook/ntfy-processor
 ```
 
+A webhook post-processor's JSON response can include a `blocks` field — a
+[Slack Block Kit](https://api.slack.com/block-kit) layout — which is
+forwarded to Slack verbatim, alongside or instead of `text`:
+```json
+{
+  "text": "Disk usage alert on web-01",
+  "blocks": [
+    {"type": "section", "text": {"type": "mrkdwn", "text": "*Disk usage alert*\nweb-01 is at 92%"}},
+    {"type": "actions", "elements": [{"type": "button", "text": {"type": "plain_text", "text": "Open Dashboard"}, "url": "https://grafana.example.com/d/disk"}]}
+  ]
+}
+```
+`blocks` isn't parsed or validated by ntfy-to-slack — it's passed straight
+through to Slack's API, which rejects a malformed layout itself. Because
+it's forwarded verbatim, treat the post-processing webhook it comes from as
+a fully-trusted component: a compromised or buggy webhook can put an
+interactive button or image with an attacker-chosen URL in front of users,
+the same way it already could with a text link.
+
 **Template file for complex formatting:**
 ```bash
 ./ntfy-to-slack --ntfy-topic alerts --slack-webhook https://hooks.slack.com/... --post-process-template-file /path/to/alert-template.tmpl
