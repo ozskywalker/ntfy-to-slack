@@ -42,13 +42,13 @@ type PostProcessor interface {
 	Process(message *NtfyMessage) (*SlackMessage, error)
 }
 
-// MustachePostProcessor processes messages using Mustache templates
-type MustachePostProcessor struct {
+// TemplatePostProcessor processes messages using Go text/template templates
+type TemplatePostProcessor struct {
 	template *template.Template
 }
 
-// NewMustachePostProcessor creates a new Mustache post-processor
-func NewMustachePostProcessor(templateContent string) (*MustachePostProcessor, error) {
+// NewTemplatePostProcessor creates a new Go text/template post-processor
+func NewTemplatePostProcessor(templateContent string) (*TemplatePostProcessor, error) {
 	// Validate template syntax by parsing it
 	tmpl, err := template.New("message").Parse(templateContent)
 	if err != nil {
@@ -60,7 +60,7 @@ func NewMustachePostProcessor(templateContent string) (*MustachePostProcessor, e
 		return nil, fmt.Errorf("template validation failed: %w", err)
 	}
 
-	return &MustachePostProcessor{
+	return &TemplatePostProcessor{
 		template: tmpl,
 	}, nil
 }
@@ -92,18 +92,18 @@ func validateTemplateExecution(tmpl *template.Template) error {
 	return nil
 }
 
-// NewMustachePostProcessorFromFile creates a new Mustache post-processor from file
-func NewMustachePostProcessorFromFile(filePath string) (*MustachePostProcessor, error) {
+// NewTemplatePostProcessorFromFile creates a new Go text/template post-processor from file
+func NewTemplatePostProcessorFromFile(filePath string) (*TemplatePostProcessor, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read template file %s: %w", filePath, err)
 	}
 
-	return NewMustachePostProcessor(string(content))
+	return NewTemplatePostProcessor(string(content))
 }
 
-// Process processes the ntfy message using the Mustache template
-func (m *MustachePostProcessor) Process(message *NtfyMessage) (*SlackMessage, error) {
+// Process processes the ntfy message using the Go text/template
+func (m *TemplatePostProcessor) Process(message *NtfyMessage) (*SlackMessage, error) {
 	var buf bytes.Buffer
 	err := m.template.Execute(&buf, message)
 	if err != nil {

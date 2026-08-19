@@ -15,14 +15,13 @@ Meant to run from a container you can set & forget.
 [![Coverage](https://codecov.io/gh/ozskywalker/ntfy-to-slack/branch/main/graph/badge.svg)](https://codecov.io/gh/ozskywalker/ntfy-to-slack)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ozskywalker/ntfy-to-slack)](https://goreportcard.com/report/github.com/ozskywalker/ntfy-to-slack)
 
-## Version 2 is here!
+## Features
 
-**Introducing Post-processing support:** Transform messages with a Mustache template, or call an external service via Webhook (like N8N), before passing the transformed result to Slack.
+**Post-processing support:** Transform messages with a Go [`text/template`](https://pkg.go.dev/text/template) template, or call an external service via Webhook (like N8N), before passing the transformed result to Slack.
 
-QoL changes:
- - **Improved error handling and resilience:** Implemented robust error recovery, automatic reconnection with 30-second intervals, graceful handling of network failures, and continued processing despite individual message errors
- - **Enhanced structured logging with configurable levels:** Added contextual logging with relevant metadata (domains, topics, error details) and configurable log levels (debug/info/warn/error) for better debugging and monitoring
- - **Refactoring:** Moved away from monolithic code into clean, modular components with a interface-driven design for improved testability and maintainability
+ - **Resilient by design:** Automatically reconnects on any connection failure (network errors, non-200 responses, or a closed stream) with a 30-second retry interval, and keeps processing subsequent messages despite individual message errors
+ - **Structured logging with configurable levels:** Contextual logging with relevant metadata (domains, topics, error details) and configurable log levels (debug/info/warn/error) for better debugging and monitoring
+ - **Modular, interface-driven design** for testability and maintainability
 
 ## Installation
 
@@ -40,7 +39,7 @@ Invoke-WebRequest -Uri "https://github.com/ozskywalker/ntfy-to-slack/releases/la
 Expand-Archive -Path "ntfy-to-slack.zip" -DestinationPath "."
 
 # Verify installation
-./ntfy-to-slack --version
+./ntfy-to-slack -v
 ```
 
 ### Using Docker
@@ -77,7 +76,7 @@ go build -v ./cmd/ntfy-to-slack
 
 ### Post-Processing Examples
 
-For more details on Mustache templates, check out [the Mustache playground & documentation.](https://jgonggrijp.gitlab.io/wontache/playground.html)
+Templates use standard Go [`text/template`](https://pkg.go.dev/text/template) syntax (`{{.Title}}`, `{{.Message}}`, `{{if}}`, `{{range}}`, ...), not Mustache — despite the similar `{{ }}` delimiters, the two template languages are not compatible.
 
 **In-line template formatting:**
 ```bash
