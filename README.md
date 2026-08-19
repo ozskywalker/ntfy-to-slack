@@ -120,7 +120,9 @@ ntfy-to-slack can be configured using either environment variables or command-li
 |----------------------|------------------|-----------------------------------|----------|----------|
 | `NTFY_DOMAIN`        | `--ntfy-domain`  | ntfy server to connect to         | ntfy.sh  | No       |
 | `NTFY_TOPIC`         | `--ntfy-topic`   | ntfy topic to subscribe to        | -        | Yes      |
-| `NTFY_AUTH`          | `--ntfy-auth`    | Authentication token for reserved topics | - | No       |
+| `NTFY_AUTH`          | `--ntfy-auth`    | Bearer token for reserved topics (mutually exclusive with `NTFY_USERNAME`/`NTFY_PASSWORD`) | - | No       |
+| `NTFY_USERNAME`      | `--ntfy-username`| Username for HTTP Basic auth on reserved topics (requires `NTFY_PASSWORD`) | - | No |
+| `NTFY_PASSWORD`      | `--ntfy-password`| Password for HTTP Basic auth on reserved topics (requires `NTFY_USERNAME`) | - | No |
 | `SLACK_WEBHOOK_URL`  | `--slack-webhook`| Slack webhook URL                 | -        | Yes      |
 | `POST_PROCESS_WEBHOOK` | `--post-process-webhook` | Webhook URL for post-processing | - | No |
 | `POST_PROCESS_TEMPLATE_FILE` | `--post-process-template-file` | Template file path for post-processing | - | No |

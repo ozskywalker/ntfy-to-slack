@@ -39,7 +39,7 @@ func TestNewNtfyClient(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := ntfy.NewClient(tt.domain, tt.topic, tt.auth, tt.client)
+			client := ntfy.NewClient(tt.domain, tt.topic, tt.auth, "", "", tt.client)
 
 			if client == nil {
 				t.Error("ntfy.NewClient() returned nil")
@@ -146,7 +146,7 @@ func TestNtfyHTTPClient_Connect(t *testing.T) {
 				},
 			}
 
-			client := ntfy.NewClient(tt.domain, tt.topic, tt.auth, mockClient)
+			client := ntfy.NewClient(tt.domain, tt.topic, tt.auth, "", "", mockClient)
 			reader, err := client.Connect(context.Background(), "")
 
 			if (err != nil) != tt.wantErr {
@@ -220,7 +220,7 @@ func TestNtfyHTTPClient_Connect_Since(t *testing.T) {
 				},
 			}
 
-			client := ntfy.NewClient("ntfy.sh", "test-topic", "", mockClient)
+			client := ntfy.NewClient("ntfy.sh", "test-topic", "", "", "", mockClient)
 			reader, err := client.Connect(context.Background(), tt.since)
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
@@ -229,6 +229,87 @@ func TestNtfyHTTPClient_Connect_Since(t *testing.T) {
 
 			if capturedReq.URL.String() != tt.expectedURL {
 				t.Errorf("Expected URL %s, got %s", tt.expectedURL, capturedReq.URL.String())
+			}
+		})
+	}
+}
+
+func TestNtfyHTTPClient_Connect_Auth(t *testing.T) {
+	tests := []struct {
+		name           string
+		auth           string
+		username       string
+		password       string
+		wantAuthHeader string
+		wantBasicAuth  bool
+		wantBasicUser  string
+		wantBasicPass  string
+	}{
+		{
+			name:           "no credentials sends no Authorization header",
+			wantAuthHeader: "",
+		},
+		{
+			name:           "bearer token",
+			auth:           "tk_sometoken",
+			wantAuthHeader: "Bearer tk_sometoken",
+		},
+		{
+			name:          "username and password send HTTP Basic auth",
+			username:      "alice",
+			password:      "hunter2",
+			wantBasicAuth: true,
+			wantBasicUser: "alice",
+			wantBasicPass: "hunter2",
+		},
+		{
+			// config.Validate rejects setting both, but Connect itself
+			// doesn't re-validate -- confirm Basic auth wins if it somehow
+			// gets here anyway, rather than silently picking one at random.
+			name:          "username takes precedence over a bearer token if both are somehow set",
+			auth:          "tk_sometoken",
+			username:      "alice",
+			password:      "hunter2",
+			wantBasicAuth: true,
+			wantBasicUser: "alice",
+			wantBasicPass: "hunter2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var capturedReq *http.Request
+
+			mockClient := &MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					capturedReq = req
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       io.NopCloser(strings.NewReader("")),
+					}, nil
+				},
+			}
+
+			client := ntfy.NewClient("ntfy.sh", "test-topic", tt.auth, tt.username, tt.password, mockClient)
+			reader, err := client.Connect(context.Background(), "")
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			reader.Close()
+
+			if tt.wantBasicAuth {
+				user, pass, ok := capturedReq.BasicAuth()
+				if !ok {
+					t.Fatal("Expected HTTP Basic auth to be set, but it wasn't")
+				}
+				if user != tt.wantBasicUser || pass != tt.wantBasicPass {
+					t.Errorf("BasicAuth() = (%q, %q), want (%q, %q)", user, pass, tt.wantBasicUser, tt.wantBasicPass)
+				}
+				return
+			}
+
+			if got := capturedReq.Header.Get("Authorization"); got != tt.wantAuthHeader {
+				t.Errorf("Authorization header = %q, want %q", got, tt.wantAuthHeader)
 			}
 		})
 	}
@@ -263,7 +344,7 @@ func TestNtfyHTTPClient_Connect_Integration(t *testing.T) {
 	}
 
 	// Use a valid domain for validation but the mock client will redirect to test server
-	client := ntfy.NewClient("ntfy.sh", "test-topic", "", mockClient)
+	client := ntfy.NewClient("ntfy.sh", "test-topic", "", "", "", mockClient)
 
 	reader, err := client.Connect(context.Background(), "")
 	if err != nil {
@@ -310,7 +391,7 @@ func TestNtfyHTTPClient_Connect_URLEncoding(t *testing.T) {
 				},
 			}
 
-			client := ntfy.NewClient("ntfy.sh", tt.topic, "", mockClient)
+			client := ntfy.NewClient("ntfy.sh", tt.topic, "", "", "", mockClient)
 			reader, err := client.Connect(context.Background(), "")
 
 			if err != nil {
