@@ -4,7 +4,7 @@ ntfy-to-slack forwards your [ntfy.sh](https://ntfy.sh) notifications into your f
 
 Meant to run from a container you can set & forget.
 
-[![Go Version](https://img.shields.io/badge/Go-1.24.4-blue.svg)](https://golang.org/doc/devel/release.html)
+[![Go Version](https://img.shields.io/badge/Go-1.26.6-blue.svg)](https://golang.org/doc/devel/release.html)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 ![Claude Used](https://img.shields.io/badge/Claude-Used-4B5AEA)
 
@@ -61,7 +61,7 @@ docker run --env="NTFY_DOMAIN=ntfy.sh" \
 
 ### Build from Source
 
-Requires Go 1.24+ to be pre-installed.
+Requires Go 1.26+ to be pre-installed.
 
 ```bash
 # Clone repository

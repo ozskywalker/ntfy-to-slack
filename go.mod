@@ -1,3 +1,3 @@
 module github.com/ozskywalker/ntfy-to-slack
 
-go 1.24.4
+go 1.26.6
