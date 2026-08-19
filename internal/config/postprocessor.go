@@ -21,14 +21,45 @@ type HTTPClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
 
-// NtfyMessage represents a message from ntfy
+// NtfyMessage represents a message from ntfy. Field names and JSON tags
+// follow ntfy's own wire format (https://docs.ntfy.sh/subscribe/api/#json-message-format)
+// so a post-processing webhook receives, and a template can reference, the
+// same shape ntfy itself publishes.
 type NtfyMessage struct {
-	Id      string
-	Time    int64
-	Event   string
-	Topic   string
-	Title   string
-	Message string
+	Id      string `json:"id"`
+	Time    int64  `json:"time"`
+	Expires int64  `json:"expires,omitempty"`
+	Event   string `json:"event"`
+	Topic   string `json:"topic"`
+	Title   string `json:"title,omitempty"`
+	Message string `json:"message,omitempty"`
+	// Priority is 1 (min) to 5 (max); ntfy omits it entirely for the
+	// default priority (3) rather than sending it explicitly.
+	Priority   int             `json:"priority,omitempty"`
+	Tags       []string        `json:"tags,omitempty"`
+	Click      string          `json:"click,omitempty"`
+	Actions    []NtfyAction    `json:"actions,omitempty"`
+	Attachment *NtfyAttachment `json:"attachment,omitempty"`
+}
+
+// NtfyAction represents one ntfy action button
+// (https://docs.ntfy.sh/publish/#action-buttons).
+type NtfyAction struct {
+	Id     string `json:"id,omitempty"`
+	Action string `json:"action"`
+	Label  string `json:"label"`
+	URL    string `json:"url,omitempty"`
+	Clear  bool   `json:"clear,omitempty"`
+}
+
+// NtfyAttachment represents a file attached to an ntfy message
+// (https://docs.ntfy.sh/publish/#attachments).
+type NtfyAttachment struct {
+	Name    string `json:"name"`
+	URL     string `json:"url"`
+	Type    string `json:"type,omitempty"`
+	Size    int64  `json:"size,omitempty"`
+	Expires int64  `json:"expires,omitempty"`
 }
 
 // SlackMessage represents a message to send to Slack
