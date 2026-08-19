@@ -57,11 +57,15 @@ func New(args []string) (*Config, error) {
 	envPostProcessWebhook := os.Getenv("POST_PROCESS_WEBHOOK")
 	envPostProcessTemplateFile := os.Getenv("POST_PROCESS_TEMPLATE_FILE")
 	envPostProcessTemplate := os.Getenv("POST_PROCESS_TEMPLATE")
-	envWebhookTimeoutSeconds := getEnvOrDefault("WEBHOOK_TIMEOUT_SECONDS", "30")
-	envWebhookRetries := getEnvOrDefault("WEBHOOK_RETRIES", "3")
-	envWebhookMaxResponseSizeMB := getEnvOrDefault("WEBHOOK_MAX_RESPONSE_SIZE_MB", "1")
+	envWebhookTimeoutSeconds := getEnvIntOrDefault("WEBHOOK_TIMEOUT_SECONDS", 30)
+	envWebhookRetries := getEnvIntOrDefault("WEBHOOK_RETRIES", 3)
+	envWebhookMaxResponseSizeMB := getEnvIntOrDefault("WEBHOOK_MAX_RESPONSE_SIZE_MB", 1)
 
-	// Define flags
+	// Define flags. Each flag's default is the environment-derived value
+	// above, exactly like the string flags: flag.*Var only overwrites the
+	// variable if the flag is actually passed on the command line, so this
+	// gives the documented "flags override environment, environment
+	// overrides built-in default" precedence in one place.
 	fs.StringVar(&config.NtfyDomain, "ntfy-domain", envNtfyDomain, "Choose the ntfy server to interact with")
 	fs.StringVar(&config.NtfyTopic, "ntfy-topic", envNtfyTopic, "Choose the ntfy topic to interact with")
 	fs.StringVar(&config.NtfyAuth, "ntfy-auth", envNtfyAuth, "Specify token for reserved topics")
@@ -69,30 +73,11 @@ func New(args []string) (*Config, error) {
 	fs.StringVar(&config.PostProcessWebhook, "post-process-webhook", envPostProcessWebhook, "Webhook URL for post-processing messages")
 	fs.StringVar(&config.PostProcessTemplateFile, "post-process-template-file", envPostProcessTemplateFile, "Template file path for post-processing messages")
 	fs.StringVar(&config.PostProcessTemplate, "post-process-template", envPostProcessTemplate, "Inline template for post-processing messages")
-	fs.IntVar(&config.WebhookTimeoutSeconds, "webhook-timeout", 0, "Webhook timeout in seconds (default: 30)")
-	fs.IntVar(&config.WebhookRetries, "webhook-retries", 0, "Number of webhook retries (default: 3)")
-	fs.IntVar(&config.WebhookMaxResponseSizeMB, "webhook-max-response-size", 0, "Maximum webhook response size in MB (default: 1)")
+	fs.IntVar(&config.WebhookTimeoutSeconds, "webhook-timeout", envWebhookTimeoutSeconds, "Webhook timeout in seconds (default: 30)")
+	fs.IntVar(&config.WebhookRetries, "webhook-retries", envWebhookRetries, "Number of webhook retries (default: 3)")
+	fs.IntVar(&config.WebhookMaxResponseSizeMB, "webhook-max-response-size", envWebhookMaxResponseSizeMB, "Maximum webhook response size in MB (default: 1)")
 	fs.BoolVar(&config.ShowVersion, "v", false, "prints current ntfy-to-slack version")
 	config.LogLevel = envLogLevel
-
-	// Set defaults for webhook configuration
-	if timeoutSeconds, err := strconv.Atoi(envWebhookTimeoutSeconds); err == nil {
-		config.WebhookTimeoutSeconds = timeoutSeconds
-	} else {
-		config.WebhookTimeoutSeconds = 30
-	}
-
-	if retries, err := strconv.Atoi(envWebhookRetries); err == nil {
-		config.WebhookRetries = retries
-	} else {
-		config.WebhookRetries = 3
-	}
-
-	if maxSize, err := strconv.Atoi(envWebhookMaxResponseSizeMB); err == nil {
-		config.WebhookMaxResponseSizeMB = maxSize
-	} else {
-		config.WebhookMaxResponseSizeMB = 1
-	}
 
 	// Parse arguments
 	err := fs.Parse(args)
@@ -249,6 +234,17 @@ func (c *Config) GetWebhookMaxResponseSizeMB() int {
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
+	}
+	return defaultValue
+}
+
+// getEnvIntOrDefault returns the named environment variable parsed as an
+// int, or defaultValue if it's unset or not a valid integer.
+func getEnvIntOrDefault(key string, defaultValue int) int {
+	if value := os.Getenv(key); value != "" {
+		if parsed, err := strconv.Atoi(value); err == nil {
+			return parsed
+		}
 	}
 	return defaultValue
 }
