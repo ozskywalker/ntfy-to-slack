@@ -49,7 +49,12 @@ jobs:
         run: go vet ./...
 
       - name: Run tests
-        run: go test -v -race -coverprofile=coverage.out ./...
+        # -coverpkg=./... attributes coverage of shared test helpers (e.g.
+        # internal/testutil's mocks) to the package they live in even though
+        # they're exercised from other packages' test binaries; without it
+        # they report 0% and drag down both the total and patch coverage
+        # despite being genuinely exercised.
+        run: go test -v -race -coverprofile=coverage.out -coverpkg=./... ./...
 
       - name: Coverage check
         run: |
