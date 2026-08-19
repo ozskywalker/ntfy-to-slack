@@ -55,32 +55,50 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	if addr := cfg.GetHealthAddr(); addr != "" {
-		healthServer, _, err := startHealthServer(addr, application.HealthHandler())
-		if err != nil {
-			// Config.Validate already checked addr parses as host:port; a
-			// failure here means something else has that port (or the
-			// address otherwise can't be bound) -- fail fast rather than
-			// silently running without the health check the operator asked
-			// for, matching how a bad post-process template is rejected at
-			// startup rather than discovered later.
-			slog.Error("failed to start health endpoint", "err", err)
-			os.Exit(1)
-		}
-		defer func() {
-			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
-			if err := healthServer.Shutdown(shutdownCtx); err != nil {
-				slog.Error("health endpoint shutdown error", "err", err)
-			}
-		}()
+	shutdownHealthServer, err := setupHealthServer(cfg.GetHealthAddr(), application.HealthHandler())
+	if err != nil {
+		// Config.Validate already checked addr parses as host:port; a
+		// failure here means something else has that port (or the address
+		// otherwise can't be bound) -- fail fast rather than silently
+		// running without the health check the operator asked for, matching
+		// how a bad post-process template is rejected at startup rather
+		// than discovered later.
+		slog.Error("failed to start health endpoint", "err", err)
+		os.Exit(1)
 	}
+	defer shutdownHealthServer()
 
 	// Run application
 	if err := application.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		slog.Error("application error", "err", err)
 		os.Exit(1)
 	}
+}
+
+// setupHealthServer wires up the optional /healthz liveness endpoint: if
+// addr is empty (the default -- health-addr wasn't set), it's a no-op that
+// returns a no-op shutdown func so main can call it unconditionally. This
+// split from startHealthServer exists so main's own logic (deciding
+// whether to start the endpoint, and how to shut it down) is exercised by a
+// test directly, instead of only ever running as part of main() itself,
+// which os.Exit and signal handling make impractical to invoke from a test.
+func setupHealthServer(addr string, handler http.Handler) (shutdown func(), err error) {
+	if addr == "" {
+		return func() {}, nil
+	}
+
+	server, _, err := startHealthServer(addr, handler)
+	if err != nil {
+		return nil, err
+	}
+
+	return func() {
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			slog.Error("health endpoint shutdown error", "err", err)
+		}
+	}, nil
 }
 
 // startHealthServer starts the /healthz liveness endpoint in the
