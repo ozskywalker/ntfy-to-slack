@@ -12,7 +12,7 @@ import (
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
 )
 
-func TestNewMustachePostProcessor(t *testing.T) {
+func TestNewTemplatePostProcessor(t *testing.T) {
 	tests := []struct {
 		name          string
 		template      string
@@ -39,7 +39,7 @@ func TestNewMustachePostProcessor(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			processor, err := config.NewMustachePostProcessor(tt.template)
+			processor, err := config.NewTemplatePostProcessor(tt.template)
 
 			if tt.shouldError {
 				if err == nil {
@@ -62,7 +62,7 @@ func TestNewMustachePostProcessor(t *testing.T) {
 	}
 }
 
-func TestNewMustachePostProcessorFromFile(t *testing.T) {
+func TestNewTemplatePostProcessorFromFile(t *testing.T) {
 	// Create a temporary template file
 	content := "Alert: {{.Title}}\nMessage: {{.Message}}"
 	tmpFile, err := os.CreateTemp("", "template-*.tmpl")
@@ -97,7 +97,7 @@ func TestNewMustachePostProcessorFromFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			processor, err := config.NewMustachePostProcessorFromFile(tt.filePath)
+			processor, err := config.NewTemplatePostProcessorFromFile(tt.filePath)
 
 			if tt.shouldError {
 				if err == nil {
@@ -120,7 +120,7 @@ func TestNewMustachePostProcessorFromFile(t *testing.T) {
 	}
 }
 
-func TestMustachePostProcessor_Process(t *testing.T) {
+func TestTemplatePostProcessor_Process(t *testing.T) {
 	tests := []struct {
 		name         string
 		template     string
@@ -172,7 +172,7 @@ func TestMustachePostProcessor_Process(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			processor, err := config.NewMustachePostProcessor(tt.template)
+			processor, err := config.NewTemplatePostProcessor(tt.template)
 			if err != nil {
 				t.Fatalf("Failed to create processor: %v", err)
 			}

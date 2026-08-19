@@ -328,8 +328,8 @@ func TestWebhookPostProcessor_ErrorStatusCodes(t *testing.T) {
 	}
 }
 
-// TestMustachePostProcessor_TemplateValidation tests template syntax validation
-func TestMustachePostProcessor_TemplateValidation(t *testing.T) {
+// TestTemplatePostProcessor_TemplateValidation tests template syntax validation
+func TestTemplatePostProcessor_TemplateValidation(t *testing.T) {
 	tests := []struct {
 		name          string
 		template      string
@@ -378,7 +378,7 @@ func TestMustachePostProcessor_TemplateValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			processor, err := config.NewMustachePostProcessor(tt.template)
+			processor, err := config.NewTemplatePostProcessor(tt.template)
 
 			if tt.shouldSucceed {
 				if err != nil {
@@ -399,8 +399,8 @@ func TestMustachePostProcessor_TemplateValidation(t *testing.T) {
 	}
 }
 
-// TestMustachePostProcessor_TemplateFileValidation tests template file loading with validation
-func TestMustachePostProcessor_TemplateFileValidation(t *testing.T) {
+// TestTemplatePostProcessor_TemplateFileValidation tests template file loading with validation
+func TestTemplatePostProcessor_TemplateFileValidation(t *testing.T) {
 	// Create temporary files for testing
 	validTemplate := "🚨 {{.Title}}\n📄 {{.Message}}"
 	invalidTemplate := "{{.Title"
@@ -438,7 +438,7 @@ func TestMustachePostProcessor_TemplateFileValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			processor, err := config.NewMustachePostProcessorFromFile(tt.filePath)
+			processor, err := config.NewTemplatePostProcessorFromFile(tt.filePath)
 
 			if tt.shouldSucceed {
 				if err != nil {
