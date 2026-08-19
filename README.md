@@ -21,6 +21,7 @@ Meant to run from a container you can set & forget.
 
  - **Resilient by design:** Automatically reconnects on any connection failure (network errors, non-200 responses, or a closed stream) with a 30-second retry interval, resuming from the last message seen so a reconnect doesn't lose messages sent during the gap, and keeps processing subsequent messages despite individual message errors. A transient Slack failure (429 or 5xx, honoring `Retry-After`) is retried instead of dropping the message.
  - **Shuts down cleanly:** Responds to SIGTERM/SIGINT (e.g. `docker stop`) by stopping immediately instead of finishing out a reconnect wait or being force-killed after the grace period
+ - **Detects a silently dead connection:** If no data (including ntfy's own ~45-second keepalives) arrives for 2 minutes, forces a reconnect instead of sitting on a stalled connection indefinitely with no indication anything is wrong
  - **Structured logging with configurable levels:** Contextual logging with relevant metadata (domains, topics, error details) and configurable log levels (debug/info/warn/error) for better debugging and monitoring
  - **Modular, interface-driven design** for testability and maintainability
 
