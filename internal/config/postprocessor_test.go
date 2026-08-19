@@ -448,3 +448,75 @@ func TestWebhookPostProcessor_Integration(t *testing.T) {
 		t.Errorf("Expected text %q, got %q", expectedText, result.Text)
 	}
 }
+
+func TestWebhookPostProcessor_Process_Blocks(t *testing.T) {
+	tests := []struct {
+		name       string
+		response   string
+		wantErr    bool
+		wantText   string
+		wantBlocks string // empty means "expect Blocks to be nil/empty"
+	}{
+		{
+			name:       "blocks-only response is accepted despite empty text",
+			response:   `{"blocks":[{"type":"section","text":{"type":"mrkdwn","text":"*Alert*"}}]}`,
+			wantErr:    false,
+			wantText:   "",
+			wantBlocks: `[{"type":"section","text":{"type":"mrkdwn","text":"*Alert*"}}]`,
+		},
+		{
+			name:       "text and blocks together are both passed through",
+			response:   `{"text":"fallback preview","blocks":[{"type":"divider"}]}`,
+			wantErr:    false,
+			wantText:   "fallback preview",
+			wantBlocks: `[{"type":"divider"}]`,
+		},
+		{
+			name:       "text-only response leaves blocks empty",
+			response:   `{"text":"just text"}`,
+			wantErr:    false,
+			wantText:   "just text",
+			wantBlocks: "",
+		},
+		{
+			name:     "neither text nor blocks is rejected",
+			response: `{}`,
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.Write([]byte(tt.response))
+			}))
+			defer server.Close()
+
+			processor := config.NewWebhookPostProcessorWithConfig(server.URL, 5, 0, 1)
+			result, err := processor.Process(&config.NtfyMessage{Title: "Test", Message: "msg"})
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error but got none")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+
+			if result.Text != tt.wantText {
+				t.Errorf("Text = %q, want %q", result.Text, tt.wantText)
+			}
+
+			gotBlocks := ""
+			if len(result.Blocks) > 0 {
+				gotBlocks = string(result.Blocks)
+			}
+			if gotBlocks != tt.wantBlocks {
+				t.Errorf("Blocks = %q, want %q", gotBlocks, tt.wantBlocks)
+			}
+		})
+	}
+}

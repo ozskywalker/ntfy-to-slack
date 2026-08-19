@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -281,6 +282,56 @@ func TestSlackSender_Send_Integration(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
+	}
+}
+
+func TestSlackSender_Send_Blocks(t *testing.T) {
+	tests := []struct {
+		name       string
+		message    *config.SlackMessage
+		wantInBody string
+		dontWant   string
+	}{
+		{
+			name:       "blocks are forwarded verbatim in the outgoing payload",
+			message:    &config.SlackMessage{Blocks: json.RawMessage(`[{"type":"divider"}]`)},
+			wantInBody: `"blocks":[{"type":"divider"}]`,
+		},
+		{
+			name:       "text and blocks together are both forwarded",
+			message:    &config.SlackMessage{Text: "fallback", Blocks: json.RawMessage(`[{"type":"divider"}]`)},
+			wantInBody: `"text":"fallback"`,
+		},
+		{
+			name:     "absent blocks are omitted from the payload entirely",
+			message:  &config.SlackMessage{Text: "no blocks here"},
+			dontWant: `"blocks"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var capturedBody string
+			mockClient := &testutil.MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					body, _ := io.ReadAll(req.Body)
+					capturedBody = string(body)
+					return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}, nil
+				},
+			}
+
+			sender := slack.NewSender("https://hooks.slack.com/test", mockClient)
+			if err := sender.Send(tt.message); err != nil {
+				t.Fatalf("Send() error = %v", err)
+			}
+
+			if tt.wantInBody != "" && !strings.Contains(capturedBody, tt.wantInBody) {
+				t.Errorf("request body %q missing %q", capturedBody, tt.wantInBody)
+			}
+			if tt.dontWant != "" && strings.Contains(capturedBody, tt.dontWant) {
+				t.Errorf("request body %q should not contain %q", capturedBody, tt.dontWant)
+			}
+		})
 	}
 }
 
