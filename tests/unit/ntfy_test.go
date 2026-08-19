@@ -146,7 +146,7 @@ func TestNtfyHTTPClient_Connect(t *testing.T) {
 			}
 
 			client := ntfy.NewClient(tt.domain, tt.topic, tt.auth, mockClient)
-			reader, err := client.Connect()
+			reader, err := client.Connect("")
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Connect() error = %v, wantErr %v", err, tt.wantErr)
@@ -187,6 +187,52 @@ func TestNtfyHTTPClient_Connect(t *testing.T) {
 	}
 }
 
+func TestNtfyHTTPClient_Connect_Since(t *testing.T) {
+	tests := []struct {
+		name        string
+		since       string
+		expectedURL string
+	}{
+		{
+			name:        "empty since omits the query parameter",
+			since:       "",
+			expectedURL: "https://ntfy.sh/test-topic/json",
+		},
+		{
+			name:        "non-empty since is passed as a query parameter",
+			since:       "abcdef1234",
+			expectedURL: "https://ntfy.sh/test-topic/json?since=abcdef1234",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var capturedReq *http.Request
+
+			mockClient := &MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					capturedReq = req
+					return &http.Response{
+						StatusCode: http.StatusOK,
+						Body:       io.NopCloser(strings.NewReader("")),
+					}, nil
+				},
+			}
+
+			client := ntfy.NewClient("ntfy.sh", "test-topic", "", mockClient)
+			reader, err := client.Connect(tt.since)
+			if err != nil {
+				t.Fatalf("Unexpected error: %v", err)
+			}
+			reader.Close()
+
+			if capturedReq.URL.String() != tt.expectedURL {
+				t.Errorf("Expected URL %s, got %s", tt.expectedURL, capturedReq.URL.String())
+			}
+		})
+	}
+}
+
 func TestNtfyHTTPClient_Connect_Integration(t *testing.T) {
 	// Test with real HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -218,7 +264,7 @@ func TestNtfyHTTPClient_Connect_Integration(t *testing.T) {
 	// Use a valid domain for validation but the mock client will redirect to test server
 	client := ntfy.NewClient("ntfy.sh", "test-topic", "", mockClient)
 
-	reader, err := client.Connect()
+	reader, err := client.Connect("")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -264,7 +310,7 @@ func TestNtfyHTTPClient_Connect_URLEncoding(t *testing.T) {
 			}
 
 			client := ntfy.NewClient("ntfy.sh", tt.topic, "", mockClient)
-			reader, err := client.Connect()
+			reader, err := client.Connect("")
 
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)

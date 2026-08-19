@@ -112,6 +112,52 @@ func TestMessageProcessor_processMessage(t *testing.T) {
 	t.Skip("processMessage is not exported - test internal implementation")
 }
 
+func TestMessageProcessor_LastSeenID(t *testing.T) {
+	tests := []struct {
+		name       string
+		input      string
+		wantID     string
+		wantSeenOk bool
+	}{
+		{
+			name:       "no messages seen yet",
+			input:      "",
+			wantID:     "",
+			wantSeenOk: false,
+		},
+		{
+			name: "tracks the id of the last well-formed line, including non-message events",
+			input: `{"id":"open1","event":"open","topic":"test"}
+{"id":"msg1","event":"message","topic":"test","message":"first"}
+{"id":"keepalive1","event":"keepalive","topic":"test"}`,
+			wantID:     "keepalive1",
+			wantSeenOk: true,
+		},
+		{
+			name:       "invalid JSON lines don't update the tracked id",
+			input:      `{"id":"msg1","event":"message","topic":"test","message":"first"}` + "\n" + `{not valid json`,
+			wantID:     "msg1",
+			wantSeenOk: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sender := &MockMessageSender{}
+			p := processor.New(sender)
+
+			if err := p.ProcessStream(strings.NewReader(tt.input)); err != nil {
+				t.Fatalf("ProcessStream() error = %v", err)
+			}
+
+			id, ok := p.LastSeenID()
+			if id != tt.wantID || ok != tt.wantSeenOk {
+				t.Errorf("LastSeenID() = (%q, %v), want (%q, %v)", id, ok, tt.wantID, tt.wantSeenOk)
+			}
+		})
+	}
+}
+
 func TestMessageProcessor_handleMessageEvent(t *testing.T) {
 	// handleMessageEvent is not exported, skip this test as it tests internal implementation
 	t.Skip("handleMessageEvent is not exported - test internal implementation")

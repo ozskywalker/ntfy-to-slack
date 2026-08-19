@@ -49,12 +49,12 @@ func (m *MockConfigProvider) Validate() error                    { return nil }
 
 // MockNtfyClient implements ntfy.Client interface for testing
 type MockNtfyClient struct {
-	ConnectFunc func() (io.ReadCloser, error)
+	ConnectFunc func(since string) (io.ReadCloser, error)
 }
 
-func (m *MockNtfyClient) Connect() (io.ReadCloser, error) {
+func (m *MockNtfyClient) Connect(since string) (io.ReadCloser, error) {
 	if m.ConnectFunc != nil {
-		return m.ConnectFunc()
+		return m.ConnectFunc(since)
 	}
 	return io.NopCloser(strings.NewReader("")), nil
 }

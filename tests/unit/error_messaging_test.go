@@ -301,7 +301,7 @@ func TestNtfyClient_ConnectErrorIncludesResponseBody(t *testing.T) {
 		},
 	}
 
-	_, err := ntfy.NewClient("ntfy.sh", "test-topic", "", client).Connect()
+	_, err := ntfy.NewClient("ntfy.sh", "test-topic", "", client).Connect("")
 	if err == nil {
 		t.Fatal("expected an error for a 401 response")
 	}

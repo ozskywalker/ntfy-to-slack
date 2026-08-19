@@ -18,6 +18,11 @@ type App struct {
 	ntfyClient ntfy.Client
 	processor  processor.StreamProcessor
 	version    string
+	// since is the ntfy message id to resume from on the next Connect,
+	// updated after every runOnce from the processor's LastSeenTracker (if
+	// it implements one). Empty means connect fresh, receiving only
+	// messages sent from that point on -- the initial state.
+	since string
 }
 
 // New creates a new application instance
@@ -109,17 +114,28 @@ func (a *App) Run() error {
 	}
 }
 
-// runOnce performs a single connection attempt and message processing loop
+// runOnce performs a single connection attempt and message processing loop.
+// It resumes from the last message id seen on a prior attempt (if any), so
+// that a reconnect after a dropped connection doesn't lose messages sent
+// during the gap.
 func (a *App) runOnce() error {
-	reader, err := a.ntfyClient.Connect()
+	reader, err := a.ntfyClient.Connect(a.since)
 	if err != nil {
 		return fmt.Errorf("failed to connect to ntfy: %w", err)
 	}
 	defer reader.Close()
 
-	slog.Info("connected to ntfy", "domain", a.config.GetNtfyDomain(), "topic", a.config.GetNtfyTopic())
+	slog.Info("connected to ntfy", "domain", a.config.GetNtfyDomain(), "topic", a.config.GetNtfyTopic(), "since", a.since)
 
-	return a.processor.ProcessStream(reader)
+	err = a.processor.ProcessStream(reader)
+
+	if tracker, ok := a.processor.(processor.LastSeenTracker); ok {
+		if id, seen := tracker.LastSeenID(); seen {
+			a.since = id
+		}
+	}
+
+	return err
 }
 
 // PrintHelp prints the application help message
