@@ -72,14 +72,32 @@ go test -v ./tests/...
 **IMPORTANT:** Always run linting locally before committing to match CI behavior:
 
 ```bash
-# Run the same linting configuration as CI
-golangci-lint run --disable=errcheck --enable=govet,ineffassign,staticcheck --timeout=5m
+# Run the same golangci-lint version and flags as CI
+make lint-golangci
 
 # Alternative: Run with default linters (more strict)
 golangci-lint run --timeout=5m
 ```
 
-The CI pipeline uses a specific linter configuration. Make sure to test locally with the exact same flags to avoid CI failures.
+`make lint-golangci` is the source of truth for the flags and warns if the
+installed golangci-lint differs from the version CI pins. The pinned version
+lives in two places that must stay in step: `GOLANGCI_LINT_VERSION` in the
+`Makefile` and `version:` in `.github/workflows/test.yml`.
+
+### Installing golangci-lint
+
+Download the official release binary for the pinned version. **Do not use
+`go install`:** it builds golangci-lint with the Go toolchain named in
+golangci-lint's own `go.mod`, which is older than the one this module targets,
+and the resulting binary refuses to lint it with:
+
+```
+can't load config: the Go language version (go1.25) used to build golangci-lint
+is lower than the targeted Go version (1.26.6)
+```
+
+The official release binaries are built with a newer Go and do not have this
+problem. `golangci-lint-action` in CI downloads those same release binaries.
 
 ## Build and Version Commands
 
@@ -98,7 +116,7 @@ goreleaser build --single-target --snapshot --clean
 
 Before committing changes:
 1. **Run tests**: `go test -v ./tests/...`
-2. **Run linting**: `golangci-lint run --disable=errcheck --enable=govet,ineffassign,staticcheck --timeout=5m`
+2. **Run linting**: `make lint-golangci`
 3. **Build application**: `go build -v ./cmd/ntfy-to-slack`
 4. **Test version system**: `./ntfy-to-slack -v`
 5. **Check formatting**: `go fmt ./...`

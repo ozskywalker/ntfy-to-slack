@@ -80,5 +80,9 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          # Pinned rather than "latest": a new golangci-lint release can add or
+          # retune linters and turn CI red on an unrelated commit. Bump this
+          # deliberately, and keep it in step with GOLANGCI_LINT_VERSION in the
+          # Makefile so local runs match.
+          version: v2.12.2
           args: --disable=errcheck --enable=govet,ineffassign,staticcheck --timeout=5m
