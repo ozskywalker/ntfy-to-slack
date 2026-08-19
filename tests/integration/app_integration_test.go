@@ -1,6 +1,8 @@
 package integration
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -173,9 +175,12 @@ func TestApp_ErrorHandling(t *testing.T) {
 			}
 
 			// Test app Run behavior with timeout
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
 			done := make(chan error, 1)
 			go func() {
-				done <- app.Run()
+				done <- app.Run(ctx)
 			}()
 
 			select {
@@ -316,9 +321,12 @@ func TestApp_ConnectionResilience(t *testing.T) {
 				t.Fatal("Failed to create app instance")
 			}
 
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+
 			done := make(chan error, 1)
 			go func() {
-				done <- app.Run()
+				done <- app.Run(ctx)
 			}()
 
 			select {
@@ -327,11 +335,54 @@ func TestApp_ConnectionResilience(t *testing.T) {
 			case <-time.After(observeWindow):
 				// Run() is still alive after the observation window, i.e. it
 				// logged the failure and is waiting to retry rather than
-				// exiting. This goroutine is intentionally leaked for the
-				// remainder of the test process; it does nothing but sleep
-				// and retry a connection that will keep failing.
+				// exiting. cancel() (deferred above) stops it cleanly instead
+				// of leaking the goroutine for the rest of the test process.
 			}
 		})
+	}
+}
+
+// TestApp_GracefulShutdown verifies that canceling Run's context makes it
+// return promptly (with context.Canceled) instead of finishing out the
+// 30-second reconnect wait or continuing to retry indefinitely. Uses a
+// domain that fails validation, so the test is fast and has no network
+// dependency: the point here is Run's response to cancellation, not its
+// connection handling, which TestApp_ConnectionResilience already covers.
+func TestApp_GracefulShutdown(t *testing.T) {
+	cfg := &MockConfigProvider{
+		Domain:                   "invalid-domain",
+		Topic:                    "test-topic",
+		WebhookURL:               "https://hooks.slack.com/services/test",
+		WebhookTimeoutSeconds:    1,
+		WebhookRetries:           0,
+		WebhookMaxResponseSizeMB: 1,
+	}
+
+	app := app.New(cfg, "test-version")
+	if app == nil {
+		t.Fatal("Failed to create app instance")
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	done := make(chan error, 1)
+	go func() {
+		done <- app.Run(ctx)
+	}()
+
+	// Give Run a moment to fail its first connection attempt and enter the
+	// 30-second reconnect wait, then cancel -- Run should return promptly
+	// instead of finishing out that wait.
+	time.Sleep(100 * time.Millisecond)
+	cancel()
+
+	select {
+	case err := <-done:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("Run() returned %v, want context.Canceled", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Run() did not return promptly after context cancellation")
 	}
 }
 
@@ -400,9 +451,12 @@ func TestApp_IntegrationScenarios(t *testing.T) {
 			// If app was created successfully, verify it can start (even if it fails to connect)
 			if app != nil {
 				// Test that Run doesn't panic immediately
+				ctx, cancel := context.WithCancel(context.Background())
+				defer cancel()
+
 				done := make(chan error, 1)
 				go func() {
-					done <- app.Run()
+					done <- app.Run(ctx)
 				}()
 
 				select {

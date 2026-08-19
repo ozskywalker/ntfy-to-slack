@@ -1,6 +1,7 @@
 package unit_test
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net/http"
@@ -146,7 +147,7 @@ func TestNtfyHTTPClient_Connect(t *testing.T) {
 			}
 
 			client := ntfy.NewClient(tt.domain, tt.topic, tt.auth, mockClient)
-			reader, err := client.Connect("")
+			reader, err := client.Connect(context.Background(), "")
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Connect() error = %v, wantErr %v", err, tt.wantErr)
@@ -220,7 +221,7 @@ func TestNtfyHTTPClient_Connect_Since(t *testing.T) {
 			}
 
 			client := ntfy.NewClient("ntfy.sh", "test-topic", "", mockClient)
-			reader, err := client.Connect(tt.since)
+			reader, err := client.Connect(context.Background(), tt.since)
 			if err != nil {
 				t.Fatalf("Unexpected error: %v", err)
 			}
@@ -264,7 +265,7 @@ func TestNtfyHTTPClient_Connect_Integration(t *testing.T) {
 	// Use a valid domain for validation but the mock client will redirect to test server
 	client := ntfy.NewClient("ntfy.sh", "test-topic", "", mockClient)
 
-	reader, err := client.Connect("")
+	reader, err := client.Connect(context.Background(), "")
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -310,7 +311,7 @@ func TestNtfyHTTPClient_Connect_URLEncoding(t *testing.T) {
 			}
 
 			client := ntfy.NewClient("ntfy.sh", tt.topic, "", mockClient)
-			reader, err := client.Connect("")
+			reader, err := client.Connect(context.Background(), "")
 
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)

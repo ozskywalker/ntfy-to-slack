@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -98,28 +99,43 @@ func New(cfg config.Provider, version string) *App {
 // attempt ends, whether it ended in error or the stream simply closed.
 const reconnectDelay = 30 * time.Second
 
-// Run starts the application main loop. It runs until the process is
-// terminated: any connection or stream error is logged and retried rather
-// than treated as fatal, since this is meant to run unattended (e.g. in a
-// container with no one watching for it to exit).
-func (a *App) Run() error {
+// Run starts the application main loop. It runs until ctx is canceled (e.g.
+// by a SIGTERM/SIGINT the caller wired into ctx): any connection or stream
+// error other than ctx's own cancellation is logged and retried rather than
+// treated as fatal, since this is meant to run unattended (e.g. in a
+// container with no one watching for it to exit). Run returns ctx.Err()
+// once ctx is done.
+func (a *App) Run(ctx context.Context) error {
 	for {
-		if err := a.runOnce(); err != nil {
+		err := a.runOnce(ctx)
+
+		if ctx.Err() != nil {
+			slog.Info("shutting down", "reason", ctx.Err())
+			return ctx.Err()
+		}
+
+		if err != nil {
 			slog.Error("connection failed, retrying", "err", err, "retry_in", reconnectDelay)
 		} else {
 			slog.Info("connection closed, restarting", "retry_in", reconnectDelay)
 		}
 
-		time.Sleep(reconnectDelay)
+		select {
+		case <-ctx.Done():
+			slog.Info("shutting down", "reason", ctx.Err())
+			return ctx.Err()
+		case <-time.After(reconnectDelay):
+		}
 	}
 }
 
 // runOnce performs a single connection attempt and message processing loop.
 // It resumes from the last message id seen on a prior attempt (if any), so
 // that a reconnect after a dropped connection doesn't lose messages sent
-// during the gap.
-func (a *App) runOnce() error {
-	reader, err := a.ntfyClient.Connect(a.since)
+// during the gap. Canceling ctx unblocks a read in progress, not just a
+// pending Connect.
+func (a *App) runOnce(ctx context.Context) error {
+	reader, err := a.ntfyClient.Connect(ctx, a.since)
 	if err != nil {
 		return fmt.Errorf("failed to connect to ntfy: %w", err)
 	}

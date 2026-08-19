@@ -1,6 +1,7 @@
 package ntfy
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log/slog"
@@ -22,7 +23,12 @@ type Client interface {
 	// duration) so a reconnect can resume after the last message seen
 	// instead of only receiving messages from the moment of reconnection
 	// onward. Pass "" for a fresh connection with no history.
-	Connect(since string) (io.ReadCloser, error)
+	//
+	// ctx governs the whole connection, not just the initial request: it is
+	// attached to the underlying HTTP request, so canceling it (e.g. on
+	// SIGTERM) unblocks a caller currently reading the returned body, not
+	// just a caller still waiting on Connect itself.
+	Connect(ctx context.Context, since string) (io.ReadCloser, error)
 }
 
 // HTTPClient implements Client interface
@@ -47,7 +53,7 @@ func NewClient(domain, topic, auth string, client config.HTTPClient) *HTTPClient
 }
 
 // Connect implements Client interface
-func (n *HTTPClient) Connect(since string) (io.ReadCloser, error) {
+func (n *HTTPClient) Connect(ctx context.Context, since string) (io.ReadCloser, error) {
 	// Validate inputs
 	domain, err := config.ValidateDomain(n.domain)
 	if err != nil {
@@ -65,7 +71,8 @@ func (n *HTTPClient) Connect(since string) (io.ReadCloser, error) {
 		endpoint += "?" + url.Values{"since": {since}}.Encode()
 	}
 
-	req, err := http.NewRequest(
+	req, err := http.NewRequestWithContext(
+		ctx,
 		http.MethodGet,
 		baseURL+endpoint,
 		nil,
