@@ -1,4 +1,4 @@
-package integration
+package app_test
 
 import (
 	"context"
@@ -7,37 +7,8 @@ import (
 	"time"
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/app"
+	"github.com/ozskywalker/ntfy-to-slack/internal/testutil"
 )
-
-// MockConfigProvider implements config.Provider interface for integration testing
-type MockConfigProvider struct {
-	Domain                   string
-	Topic                    string
-	Auth                     string
-	Username                 string
-	Password                 string
-	WebhookURL               string
-	PostProcessWebhook       string
-	PostProcessTemplate      string
-	PostProcessTemplateFile  string
-	WebhookTimeoutSeconds    int
-	WebhookRetries           int
-	WebhookMaxResponseSizeMB int
-}
-
-func (m *MockConfigProvider) GetNtfyDomain() string              { return m.Domain }
-func (m *MockConfigProvider) GetNtfyTopic() string               { return m.Topic }
-func (m *MockConfigProvider) GetNtfyAuth() string                { return m.Auth }
-func (m *MockConfigProvider) GetNtfyUsername() string            { return m.Username }
-func (m *MockConfigProvider) GetNtfyPassword() string            { return m.Password }
-func (m *MockConfigProvider) GetSlackWebhookURL() string         { return m.WebhookURL }
-func (m *MockConfigProvider) GetPostProcessWebhook() string      { return m.PostProcessWebhook }
-func (m *MockConfigProvider) GetPostProcessTemplate() string     { return m.PostProcessTemplate }
-func (m *MockConfigProvider) GetPostProcessTemplateFile() string { return m.PostProcessTemplateFile }
-func (m *MockConfigProvider) GetWebhookTimeoutSeconds() int      { return m.WebhookTimeoutSeconds }
-func (m *MockConfigProvider) GetWebhookRetries() int             { return m.WebhookRetries }
-func (m *MockConfigProvider) GetWebhookMaxResponseSizeMB() int   { return m.WebhookMaxResponseSizeMB }
-func (m *MockConfigProvider) Validate() error                    { return nil }
 
 // TestApp_ConfigurationValidation tests app creation with various configurations
 func TestApp_ConfigurationValidation(t *testing.T) {
@@ -74,7 +45,7 @@ func TestApp_ConfigurationValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &MockConfigProvider{
+			cfg := &testutil.MockConfigProvider{
 				Domain:                   tt.domain,
 				Topic:                    tt.topic,
 				WebhookURL:               tt.slackURL,
@@ -155,7 +126,7 @@ func TestApp_ErrorHandling(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &MockConfigProvider{
+			cfg := &testutil.MockConfigProvider{
 				Domain:                   tt.domain,
 				Topic:                    tt.topic,
 				WebhookURL:               tt.slackURL,
@@ -253,7 +224,7 @@ func TestApp_PostProcessorIntegration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &MockConfigProvider{
+			cfg := &testutil.MockConfigProvider{
 				Domain:                   "ntfy.sh",
 				Topic:                    "test-alerts",
 				WebhookURL:               "https://hooks.slack.com/services/test",
@@ -311,7 +282,7 @@ func TestApp_ConnectionResilience(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &MockConfigProvider{
+			cfg := &testutil.MockConfigProvider{
 				Domain:                   tt.domain,
 				Topic:                    "test-topic",
 				WebhookURL:               "https://hooks.slack.com/services/test",
@@ -353,7 +324,7 @@ func TestApp_ConnectionResilience(t *testing.T) {
 // dependency: the point here is Run's response to cancellation, not its
 // connection handling, which TestApp_ConnectionResilience already covers.
 func TestApp_GracefulShutdown(t *testing.T) {
-	cfg := &MockConfigProvider{
+	cfg := &testutil.MockConfigProvider{
 		Domain:                   "invalid-domain",
 		Topic:                    "test-topic",
 		WebhookURL:               "https://hooks.slack.com/services/test",
@@ -428,7 +399,7 @@ func TestApp_IntegrationScenarios(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			cfg := &MockConfigProvider{
+			cfg := &testutil.MockConfigProvider{
 				Domain:                   tt.domain,
 				Topic:                    tt.topic,
 				WebhookURL:               tt.slackURL,
@@ -480,13 +451,13 @@ func TestApp_IntegrationScenarios(t *testing.T) {
 func TestApp_ConfigurationEdgeCases(t *testing.T) {
 	tests := []struct {
 		name           string
-		cfg            *MockConfigProvider
+		cfg            *testutil.MockConfigProvider
 		expectCreation bool
 		description    string
 	}{
 		{
 			name: "minimal valid configuration",
-			cfg: &MockConfigProvider{
+			cfg: &testutil.MockConfigProvider{
 				Domain:                   "ntfy.sh",
 				Topic:                    "test",
 				WebhookURL:               "https://hooks.slack.com/services/minimal",
@@ -499,7 +470,7 @@ func TestApp_ConfigurationEdgeCases(t *testing.T) {
 		},
 		{
 			name: "maximum configuration",
-			cfg: &MockConfigProvider{
+			cfg: &testutil.MockConfigProvider{
 				Domain:                   "custom.ntfy.server.com",
 				Topic:                    "maximum-length-topic-name-with-64-chars-exactly-1234567890",
 				Auth:                     "tk_abcdefghijklmnopqrstuvwxyz1234567890",
@@ -514,7 +485,7 @@ func TestApp_ConfigurationEdgeCases(t *testing.T) {
 		},
 		{
 			name: "auth token configuration",
-			cfg: &MockConfigProvider{
+			cfg: &testutil.MockConfigProvider{
 				Domain:                   "ntfy.sh",
 				Topic:                    "protected-topic",
 				Auth:                     "tk_test123456789",

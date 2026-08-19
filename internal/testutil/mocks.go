@@ -1,16 +1,23 @@
-package unit_test
+// Package testutil holds test doubles shared across this module's test
+// files. It's a regular (non-_test.go) package so that test files in
+// different directories -- internal/app, internal/config, internal/ntfy,
+// internal/processor, internal/slack -- can all import the same mocks
+// instead of each defining their own copy, which is what happened when the
+// test suite lived entirely under tests/unit and tests/integration as two
+// flat, unrelated package trees.
+package testutil
 
 import (
-	"context"
 	"errors"
-	"io"
 	"net/http"
-	"strings"
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
 )
 
-// MockHTTPClient implements config.HTTPClient interface for testing
+// MockHTTPClient implements config.HTTPClient (and, transitively,
+// processor.HTTPClient and ntfy's dependency on the same shape) for tests
+// that need to control or observe outgoing HTTP requests without a real
+// network call.
 type MockHTTPClient struct {
 	DoFunc func(req *http.Request) (*http.Response, error)
 }
@@ -22,7 +29,9 @@ func (m *MockHTTPClient) Do(req *http.Request) (*http.Response, error) {
 	return nil, errors.New("DoFunc not implemented")
 }
 
-// MockConfigProvider implements config.Provider interface for testing
+// MockConfigProvider implements config.Provider for tests that need to
+// construct an App or exercise config-consuming code without going through
+// config.New's flag/env parsing.
 type MockConfigProvider struct {
 	Domain                   string
 	Topic                    string
@@ -52,38 +61,8 @@ func (m *MockConfigProvider) GetWebhookRetries() int             { return m.Webh
 func (m *MockConfigProvider) GetWebhookMaxResponseSizeMB() int   { return m.WebhookMaxResponseSizeMB }
 func (m *MockConfigProvider) Validate() error                    { return nil }
 
-// MockNtfyClient implements ntfy.Client interface for testing
-type MockNtfyClient struct {
-	ConnectFunc func(ctx context.Context, since string) (io.ReadCloser, error)
-}
-
-func (m *MockNtfyClient) Connect(ctx context.Context, since string) (io.ReadCloser, error) {
-	if m.ConnectFunc != nil {
-		return m.ConnectFunc(ctx, since)
-	}
-	return io.NopCloser(strings.NewReader("")), nil
-}
-
-// MockStreamProcessor implements processor.StreamProcessor interface for testing
-type MockStreamProcessor struct {
-	ProcessStreamFunc func(reader io.Reader) error
-	ProcessedInputs   []string
-}
-
-func (m *MockStreamProcessor) ProcessStream(reader io.Reader) error {
-	if m.ProcessStreamFunc != nil {
-		return m.ProcessStreamFunc(reader)
-	}
-
-	// Capture input for verification
-	if data, err := io.ReadAll(reader); err == nil {
-		m.ProcessedInputs = append(m.ProcessedInputs, string(data))
-	}
-
-	return nil
-}
-
-// MockMessageSender implements processor.MessageSender interface for testing
+// MockMessageSender implements processor.MessageSender for tests
+// exercising MessageProcessor without a real Slack call.
 type MockMessageSender struct {
 	SentMessages []config.SlackMessage
 	SendError    error
@@ -99,7 +78,9 @@ func (m *MockMessageSender) Send(message *config.SlackMessage) error {
 	return nil
 }
 
-// MockPostProcessor for testing
+// MockPostProcessor implements config.PostProcessor for tests exercising
+// MessageProcessor's post-processing path without a real template or
+// webhook call.
 type MockPostProcessor struct {
 	ProcessFunc func(message *config.NtfyMessage) (*config.SlackMessage, error)
 	CallCount   int
@@ -113,7 +94,10 @@ func (m *MockPostProcessor) Process(message *config.NtfyMessage) (*config.SlackM
 	return &config.SlackMessage{Text: "Processed: " + message.Message}, nil
 }
 
-// CustomErrorSender is a test helper that simulates send errors
+// CustomErrorSender is a processor.MessageSender that returns a
+// caller-scripted sequence of errors (nil for success) on successive Send
+// calls, for tests asserting that message processing continues past
+// individual delivery failures.
 type CustomErrorSender struct {
 	SentMessages []config.SlackMessage
 	Errors       []error

@@ -1,4 +1,4 @@
-package unit_test
+package config_test
 
 import (
 	"encoding/json"
@@ -10,7 +10,13 @@ import (
 	"testing"
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
+	"github.com/ozskywalker/ntfy-to-slack/internal/testutil"
 )
+
+// boolPtr returns a pointer to the given boolean value.
+func boolPtr(v bool) *bool {
+	return &v
+}
 
 func TestNewTemplatePostProcessor(t *testing.T) {
 	tests := []struct {
@@ -236,7 +242,7 @@ func TestNewWebhookPostProcessor(t *testing.T) {
 		{
 			name:       "with custom client",
 			webhookURL: "https://example.com/webhook",
-			httpClient: &MockHTTPClient{},
+			httpClient: &testutil.MockHTTPClient{},
 		},
 		{
 			name:       "with nil client",
@@ -334,7 +340,7 @@ func TestWebhookPostProcessor_Process(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockClient := &MockHTTPClient{
+			mockClient := &testutil.MockHTTPClient{
 				DoFunc: func(req *http.Request) (*http.Response, error) {
 					// Verify request content
 					if req.Method != http.MethodPost {

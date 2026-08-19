@@ -1,4 +1,4 @@
-package unit_test
+package processor_test
 
 import (
 	"context"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/config"
 	"github.com/ozskywalker/ntfy-to-slack/internal/processor"
+	"github.com/ozskywalker/ntfy-to-slack/internal/testutil"
 )
 
 // captureHandler is a slog.Handler that records the messages logged so tests
@@ -86,11 +87,11 @@ func TestMessageProcessor_LoggingStages(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := captureMessages(t)
-			sender := &MockMessageSender{}
+			sender := &testutil.MockMessageSender{}
 
 			var p *processor.MessageProcessor
 			if tt.usePost {
-				post := &MockPostProcessor{
+				post := &testutil.MockPostProcessor{
 					ProcessFunc: func(msg *config.NtfyMessage) (*config.SlackMessage, error) {
 						if tt.postProcErr != nil {
 							return nil, tt.postProcErr
