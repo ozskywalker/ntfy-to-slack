@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -55,7 +56,17 @@ func main() {
 	defer stop()
 
 	if addr := cfg.GetHealthAddr(); addr != "" {
-		healthServer := startHealthServer(addr, application.HealthHandler())
+		healthServer, _, err := startHealthServer(addr, application.HealthHandler())
+		if err != nil {
+			// Config.Validate already checked addr parses as host:port; a
+			// failure here means something else has that port (or the
+			// address otherwise can't be bound) -- fail fast rather than
+			// silently running without the health check the operator asked
+			// for, matching how a bad post-process template is rejected at
+			// startup rather than discovered later.
+			slog.Error("failed to start health endpoint", "err", err)
+			os.Exit(1)
+		}
 		defer func() {
 			shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
@@ -73,20 +84,32 @@ func main() {
 }
 
 // startHealthServer starts the /healthz liveness endpoint in the
-// background and returns the server so the caller can shut it down.
-func startHealthServer(addr string, handler http.Handler) *http.Server {
+// background and returns the server (so the caller can shut it down) and
+// the address it actually bound to. Binding happens synchronously, before
+// this returns, so a bind failure (e.g. the port is already in use) is
+// reported to the caller immediately rather than only ever logged from the
+// background goroutine after the fact -- letting main fail fast on it the
+// same way it already does for other startup-time configuration problems.
+// The returned address matters for tests, which listen on "127.0.0.1:0" to
+// get an OS-assigned port and need to know which one they got.
+func startHealthServer(addr string, handler http.Handler) (server *http.Server, boundAddr string, err error) {
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, "", err
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("/healthz", handler)
-	server := &http.Server{Addr: addr, Handler: mux}
+	server = &http.Server{Handler: mux}
 
 	go func() {
-		slog.Info("health endpoint listening", "addr", addr)
-		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		slog.Info("health endpoint listening", "addr", listener.Addr().String())
+		if err := server.Serve(listener); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("health endpoint error", "err", err)
 		}
 	}()
 
-	return server
+	return server, listener.Addr().String(), nil
 }
 
 // setupLogging configures the application logging. An unrecognized level
