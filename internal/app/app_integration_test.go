@@ -3,12 +3,25 @@ package app_test
 import (
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/ozskywalker/ntfy-to-slack/internal/app"
 	"github.com/ozskywalker/ntfy-to-slack/internal/testutil"
 )
+
+// writeTempTemplateFile writes content to a temp file and returns its path,
+// for tests exercising app.New's PostProcessTemplateFile branch.
+func writeTempTemplateFile(t *testing.T, content string) string {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "template.tmpl")
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		t.Fatalf("failed to write temp template file: %v", err)
+	}
+	return path
+}
 
 // TestApp_ConfigurationValidation tests app creation with various configurations
 func TestApp_ConfigurationValidation(t *testing.T) {
@@ -220,6 +233,15 @@ func TestApp_PostProcessorIntegration(t *testing.T) {
 			template:        "{{.Title}}",
 			webhook:         "https://api.example.com/process", // Should use webhook, ignore template
 		},
+		{
+			name:            "template file post-processor configured",
+			postProcessType: "templateFile",
+		},
+		{
+			name:            "nonexistent template file handles gracefully",
+			postProcessType: "templateFile",
+			templateFile:    "/nonexistent/path/does-not-exist.tmpl",
+		},
 	}
 
 	for _, tt := range tests {
@@ -238,6 +260,13 @@ func TestApp_PostProcessorIntegration(t *testing.T) {
 			}
 			if tt.postProcessType == "webhook" || tt.postProcessType == "multiple" {
 				cfg.PostProcessWebhook = tt.webhook
+			}
+			if tt.postProcessType == "templateFile" {
+				if tt.templateFile != "" {
+					cfg.PostProcessTemplateFile = tt.templateFile
+				} else {
+					cfg.PostProcessTemplateFile = writeTempTemplateFile(t, "🚨 {{.Title}}: {{.Message}}")
+				}
 			}
 
 			// Create app - this tests that post-processor configuration works
