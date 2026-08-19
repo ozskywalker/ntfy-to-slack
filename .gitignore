@@ -4,7 +4,10 @@
 *.dll
 *.so
 *.dylib
-ntfy-to-slack
+# Anchored to the repo root: an unanchored "ntfy-to-slack" also matches the
+# cmd/ntfy-to-slack/ source directory, silently hiding any new file added
+# there (as happened with a new test file in this repo's own history).
+/ntfy-to-slack
 
 # Test binary, built with `go test -c`
 *.test

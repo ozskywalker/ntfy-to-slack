@@ -444,6 +444,36 @@ func TestConfigInterface(t *testing.T) {
 	}
 }
 
+// TestConfigInterface_BasicAuthAndHealthAddr covers the Provider getters
+// TestConfigInterface doesn't: GetNtfyUsername/GetNtfyPassword (which
+// TestConfigInterface can't also exercise there, since --ntfy-auth and
+// --ntfy-username/--ntfy-password are mutually exclusive) and
+// GetHealthAddr.
+func TestConfigInterface_BasicAuthAndHealthAddr(t *testing.T) {
+	cfg, err := config.New([]string{
+		"--ntfy-topic", "test-topic",
+		"--slack-webhook", "https://hooks.slack.com/test",
+		"--ntfy-username", "alice",
+		"--ntfy-password", "hunter2",
+		"--health-addr", ":8080",
+	})
+	if err != nil {
+		t.Fatalf("Failed to create config: %v", err)
+	}
+
+	var provider config.Provider = cfg
+
+	if provider.GetNtfyUsername() != "alice" {
+		t.Errorf("GetNtfyUsername() = %v, want %v", provider.GetNtfyUsername(), "alice")
+	}
+	if provider.GetNtfyPassword() != "hunter2" {
+		t.Errorf("GetNtfyPassword() = %v, want %v", provider.GetNtfyPassword(), "hunter2")
+	}
+	if provider.GetHealthAddr() != ":8080" {
+		t.Errorf("GetHealthAddr() = %v, want %v", provider.GetHealthAddr(), ":8080")
+	}
+}
+
 // getEnvOrDefault and getEnvIntOrDefault are unexported; see
 // internal_test.go (package config, not config_test) for coverage of them
 // directly, now that colocating tests makes that possible.
