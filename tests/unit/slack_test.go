@@ -175,6 +175,92 @@ func TestSlackSender_Send(t *testing.T) {
 	}
 }
 
+func TestSlackSender_Send_Retry(t *testing.T) {
+	tests := []struct {
+		name            string
+		responses       []*http.Response
+		networkErrors   []error
+		wantErr         bool
+		wantAttempts    int
+		wantMinDuration time.Duration
+	}{
+		{
+			name: "succeeds after a 500 then a 200",
+			responses: []*http.Response{
+				{StatusCode: http.StatusInternalServerError, Body: http.NoBody},
+				{StatusCode: http.StatusOK, Body: http.NoBody},
+			},
+			wantErr:      false,
+			wantAttempts: 2,
+		},
+		{
+			name: "succeeds after a 429 with Retry-After",
+			responses: []*http.Response{
+				{StatusCode: http.StatusTooManyRequests, Body: http.NoBody, Header: http.Header{"Retry-After": {"1"}}},
+				{StatusCode: http.StatusOK, Body: http.NoBody},
+			},
+			wantErr:         false,
+			wantAttempts:    2,
+			wantMinDuration: 1 * time.Second,
+		},
+		{
+			name: "gives up after exhausting retries on persistent 503",
+			responses: []*http.Response{
+				{StatusCode: http.StatusServiceUnavailable, Body: http.NoBody},
+				{StatusCode: http.StatusServiceUnavailable, Body: http.NoBody},
+				{StatusCode: http.StatusServiceUnavailable, Body: http.NoBody},
+			},
+			wantErr:      true,
+			wantAttempts: 3,
+		},
+		{
+			name: "does not retry a 400",
+			responses: []*http.Response{
+				{StatusCode: http.StatusBadRequest, Body: http.NoBody},
+			},
+			wantErr:      true,
+			wantAttempts: 1,
+		},
+		{
+			name:          "does not retry a network error",
+			networkErrors: []error{errors.New("connection refused")},
+			wantErr:       true,
+			wantAttempts:  1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var callCount int
+			mockClient := &MockHTTPClient{
+				DoFunc: func(req *http.Request) (*http.Response, error) {
+					idx := callCount
+					callCount++
+					if idx < len(tt.networkErrors) {
+						return nil, tt.networkErrors[idx]
+					}
+					return tt.responses[idx], nil
+				},
+			}
+
+			sender := slack.NewSender("https://hooks.slack.com/test", mockClient)
+			start := time.Now()
+			err := sender.Send(&config.SlackMessage{Text: "test"})
+			duration := time.Since(start)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("Send() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			if callCount != tt.wantAttempts {
+				t.Errorf("Expected %d attempts, got %d", tt.wantAttempts, callCount)
+			}
+			if tt.wantMinDuration > 0 && duration < tt.wantMinDuration {
+				t.Errorf("Expected Send() to honor Retry-After and take at least %v, took %v", tt.wantMinDuration, duration)
+			}
+		})
+	}
+}
+
 func TestSlackSender_Send_Integration(t *testing.T) {
 	// Test with real HTTP server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
